@@ -21,6 +21,8 @@ PostgreSQL phải bảo vệ điều kiện chống trùng khi các giao dịch 
 
 NestJS kiểm tra danh tính, vai trò, phạm vi lịch, trạng thái nguồn và thời gian theo đồng hồ backend. Chỉ cho phép các chuyển đổi trong bảng. CANCELLED, COMPLETED và NO_SHOW kết thúc vòng đời. Khi hai thao tác cạnh tranh, điều kiện trạng thái nguồn phải còn đúng tại thời điểm cập nhật.
 
+M6 yêu cầu gửi trạng thái nguồn đã đọc trong `expectedStatus`. Backend lấy actor từ phiên, khóa nhân viên, kiểm tra thời gian rồi cập nhật có điều kiện theo phạm vi và trạng thái nguồn. Trigger PostgreSQL ghi actor, lý do hủy và thời điểm trong cùng giao dịch. Lỗi 409 báo thao tác không còn hợp lệ. Lịch PENDING tiếp tục giữ chỗ đến khi có chuyển trạng thái hợp lệ. Danh sách và chi tiết dùng phân công trên chính lịch hẹn để xác định nhân viên có quyền xem và xử lý.
+
 ## Trường hợp biên để kiểm thử
 
 | Tình huống                                                | Kết quả mong đợi                                                                                                                  |

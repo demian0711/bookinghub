@@ -151,6 +151,7 @@ model AppointmentEvent {
   appointment    Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
   actorId        String             @db.Uuid
   actor          User               @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  reason         String?            @db.VarChar(500)
   previousStatus AppointmentStatus?
   status         AppointmentStatus
   occurredAt     DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(3)
