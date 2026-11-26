@@ -5,11 +5,10 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Temporal } from '@js-temporal/polyfill';
-import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityQuery, DayScheduleDto } from './schedule.dto';
 import {
-  availableSlots,
+  fitsShift,
   bookingDay,
   clockText,
   MinuteRange,
@@ -18,28 +17,21 @@ import {
   validatedShifts,
 } from './salon-time';
 
-const shiftFields = {
-  orderBy: { startMinute: 'asc' },
-  select: {
-    startMinute: true,
-    endMinute: true,
-    breaks: {
-      orderBy: { startMinute: 'asc' },
-      select: { startMinute: true, endMinute: true },
-    },
-  },
-} as const;
+import {
+  configuredSlots,
+  dateColumn,
+  dayBounds,
+  holding,
+  shiftFields,
+} from './day-slots';
+import { BookingConflict } from '../appointments/booking-conflict';
+import { lockStaff } from '../prisma/staff-lock';
 function asHours(range: MinuteRange) {
   return {
     start: clockText(range.startMinute),
     end: clockText(range.endMinute),
   };
 }
-function dateColumn(day: Temporal.PlainDate) {
-  // Prisma biểu diễn SQL DATE bằng Date UTC; đây chỉ là mã hóa ngày, không phải giờ bắt đầu ca.
-  return new Date(day.toString() + 'T00:00:00.000Z');
-}
-
 @Injectable()
 export class ScheduleService {
   constructor(private readonly db: PrismaService) {}
@@ -49,30 +41,30 @@ export class ScheduleService {
     const { serviceId, staffId } = query;
     const slots = await this.db.$transaction(
       async (tx) => {
-        const assignment = await tx.staffService.findFirst({
-          where: {
-            serviceId,
-            staffId,
-            service: { active: true },
-            staff: { user: { active: true } },
-          },
-          select: { service: { select: { durationMinutes: true } } },
-        });
-        if (!assignment) throw new NotFoundException();
-        const off = await tx.dayOff.findUnique({
-          where: { staffId_date: { staffId, date: dateColumn(day) } },
-        });
-        if (off) return [];
-        const shifts = await tx.workShift.findMany({
-          where: { staffId, weekday: day.dayOfWeek },
-          ...shiftFields,
-        });
-        // M5 sẽ đọc lịch giữ chỗ trong cùng snapshot rồi lọc các khoảng [startAt,endAt).
-        return availableSlots(
+        const { slots } = await configuredSlots(
+          tx,
+          staffId,
+          serviceId,
           day,
-          assignment.service.durationMinutes,
-          shifts,
           now,
+        );
+        const { start, end } = dayBounds(day);
+        const held = await tx.appointment.findMany({
+          where: {
+            staffId,
+            status: { in: holding },
+            startAt: { lt: end },
+            endAt: { gt: start },
+          },
+          select: { startAt: true, endAt: true },
+        });
+        return slots.filter(
+          (slot) =>
+            !held.some(
+              (h) =>
+                Date.parse(slot.startAt) < h.endAt.getTime() &&
+                h.startAt.getTime() < Date.parse(slot.endAt),
+            ),
         );
       },
       { isolationLevel: 'RepeatableRead' },
@@ -102,19 +94,31 @@ export class ScheduleService {
       daysOff: staff.daysOff.map((o) => o.date.toISOString().slice(0, 10)),
     };
   }
-  private async lockStaff(tx: Prisma.TransactionClient, staffId: string) {
-    // Tuần tự hóa thay đổi cấu hình của cùng nhân viên; M5 cần dùng cùng khóa khi đặt lịch.
-    const rows = await tx.$queryRaw<
-      { userId: string }[]
-    >`SELECT "userId" FROM "StaffProfile" WHERE "userId"=${staffId}::uuid FOR UPDATE`;
-    if (!rows.length) throw new NotFoundException();
-  }
   async replaceDay(staffId: string, weekdayText: string, body: DayScheduleDto) {
     if (!/^[1-7]$/.test(weekdayText)) throw new BadRequestException();
     const weekday = Number(weekdayText);
     const shifts = validatedShifts(body.shifts);
     await this.db.$transaction(async (tx) => {
-      await this.lockStaff(tx, staffId);
+      await lockStaff(tx, staffId);
+      const held = await tx.appointment.findMany({
+        where: { staffId, status: { in: holding }, endAt: { gt: new Date() } },
+        select: { id: true, startAt: true, durationMinutes: true },
+      });
+      const affected = held.filter((a) => {
+        const local = Temporal.Instant.fromEpochMilliseconds(
+          a.startAt.getTime(),
+        ).toZonedDateTimeISO(salonZone);
+        const start = local.hour * 60 + local.minute;
+        return (
+          local.dayOfWeek === weekday &&
+          !shifts.some((s) => fitsShift(s, start, start + a.durationMinutes))
+        );
+      });
+      if (affected.length)
+        throw new BookingConflict(
+          'SCHEDULE_AFFECTS_APPOINTMENTS',
+          affected.map((a) => a.id),
+        );
       await tx.workDay.upsert({
         where: { staffId_weekday: { staffId, weekday } },
         create: { staffId, weekday },
@@ -139,14 +143,31 @@ export class ScheduleService {
   async setDayOff(staffId: string, dateText: string, off: boolean) {
     const date = dateColumn(salonDate(dateText));
     await this.db.$transaction(async (tx) => {
-      await this.lockStaff(tx, staffId);
-      if (off)
+      await lockStaff(tx, staffId);
+      if (off) {
+        const bounds = dayBounds(salonDate(dateText));
+        const held = await tx.appointment.findMany({
+          where: {
+            staffId,
+            status: { in: holding },
+            startAt: { lt: bounds.end },
+            endAt: {
+              gt: new Date(Math.max(Date.now(), bounds.start.getTime())),
+            },
+          },
+          select: { id: true },
+        });
+        if (held.length)
+          throw new BookingConflict(
+            'SCHEDULE_AFFECTS_APPOINTMENTS',
+            held.map((a) => a.id),
+          );
         await tx.dayOff.upsert({
           where: { staffId_date: { staffId, date } },
           create: { staffId, date },
           update: {},
         });
-      else await tx.dayOff.deleteMany({ where: { staffId, date } });
+      } else await tx.dayOff.deleteMany({ where: { staffId, date } });
     });
   }
 }

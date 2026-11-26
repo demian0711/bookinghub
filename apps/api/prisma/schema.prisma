@@ -15,14 +15,16 @@ enum Role {
 }
 
 model User {
-  id           String        @id @default(uuid()) @db.Uuid
-  email        String        @unique @db.VarChar(254)
-  displayName  String        @db.VarChar(100)
-  passwordHash String
-  role         Role          @default(CUSTOMER)
-  active       Boolean       @default(true)
-  sessions     Session[]
-  staffProfile StaffProfile?
+  id                String             @id @default(uuid()) @db.Uuid
+  email             String             @unique @db.VarChar(254)
+  displayName       String             @db.VarChar(100)
+  passwordHash      String
+  role              Role               @default(CUSTOMER)
+  active            Boolean            @default(true)
+  appointments      Appointment[]
+  appointmentEvents AppointmentEvent[]
+  sessions          Session[]
+  staffProfile      StaffProfile?
 
   @@unique([id, role])
 }
@@ -47,6 +49,8 @@ model Service {
   active          Boolean        @default(true)
   assignments     StaffService[]
 
+  appointments Appointment[]
+
   @@index([active, name, id])
 }
 
@@ -57,8 +61,9 @@ model StaffProfile {
   bio         String         @default("") @db.VarChar(1000)
   assignments StaffService[]
 
-  workDays WorkDay[]
-  daysOff  DayOff[]
+  appointments Appointment[]
+  workDays     WorkDay[]
+  daysOff      DayOff[]
 
   @@unique([userId, role])
 }
@@ -109,4 +114,46 @@ model DayOff {
   staff   StaffProfile @relation(fields: [staffId], references: [userId], onDelete: Restrict)
 
   @@id([staffId, date])
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+model Appointment {
+  id              String             @id @default(uuid()) @db.Uuid
+  customerId      String             @db.Uuid
+  customer        User               @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  staffId         String             @db.Uuid
+  staff           StaffProfile       @relation(fields: [staffId], references: [userId], onDelete: Restrict)
+  serviceId       String             @db.Uuid
+  service         Service            @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  startAt         DateTime           @db.Timestamptz(3)
+  endAt           DateTime           @db.Timestamptz(3)
+  serviceName     String             @db.VarChar(120)
+  priceVnd        Int
+  durationMinutes Int
+  status          AppointmentStatus  @default(PENDING)
+  createdAt       DateTime           @default(now()) @db.Timestamptz(3)
+  events          AppointmentEvent[]
+
+  @@index([staffId, startAt])
+  @@index([customerId, startAt])
+}
+
+model AppointmentEvent {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointmentId  String             @db.Uuid
+  appointment    Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  actorId        String             @db.Uuid
+  actor          User               @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  previousStatus AppointmentStatus?
+  status         AppointmentStatus
+  occurredAt     DateTime           @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(3)
+
+  @@index([appointmentId, occurredAt])
 }

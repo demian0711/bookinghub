@@ -16,6 +16,7 @@ import {
   StaffQuery,
 } from './catalog.dto';
 
+import { lockStaff } from '../prisma/staff-lock';
 const publicService = {
   id: true,
   name: true,
@@ -156,27 +157,27 @@ export class CatalogService {
   async updateStaff(id: string, dto: EditStaffDto) {
     if (Object.values(dto).every((value) => value === undefined))
       throw new BadRequestException();
-    const row = await this.db.staffProfile
-      .update({
-        where: { userId: id },
-        data: {
-          bio: dto.bio,
-          user: {
-            update: { displayName: dto.displayName, active: dto.active },
+    const row = await this.db.$transaction(async (tx) => {
+      await lockStaff(tx, id);
+      return tx.staffProfile
+        .update({
+          where: { userId: id },
+          data: {
+            bio: dto.bio,
+            user: {
+              update: { displayName: dto.displayName, active: dto.active },
+            },
           },
-        },
-        select: adminStaff,
-      })
-      .catch(catalogError);
+          select: adminStaff,
+        })
+        .catch(catalogError);
+    });
     return staffView(row);
   }
   async setServices(id: string, serviceIds: string[]) {
     return this.db.$transaction(async (tx) => {
       // Khóa hồ sơ để hai lần thay thế đồng thời không trộn hai tập phân công.
-      const locked = await tx.$queryRaw<
-        { userId: string }[]
-      >`SELECT "userId" FROM "StaffProfile" WHERE "userId"=${id}::uuid FOR UPDATE`;
-      if (!locked.length) throw new NotFoundException();
+      await lockStaff(tx, id);
       if (
         (await tx.service.count({ where: { id: { in: serviceIds } } })) !==
         serviceIds.length

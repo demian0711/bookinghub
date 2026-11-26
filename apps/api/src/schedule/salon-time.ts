@@ -75,6 +75,13 @@ export function validatedShifts(
   );
 }
 
+export function fitsShift(shift: ShiftRange, start: number, end: number) {
+  return (
+    start >= shift.startMinute &&
+    end <= shift.endMinute &&
+    !shift.breaks.some((b) => start < b.endMinute && b.startMinute < end)
+  );
+}
 export function availableSlots(
   day: Temporal.PlainDate,
   duration: number,
@@ -91,8 +98,7 @@ export function availableSlots(
       start += 15
     ) {
       const end = start + duration;
-      if (shift.breaks.some((b) => start < b.endMinute && b.startMinute < end))
-        continue;
+      if (!fitsShift(shift, start, end)) continue;
       const startAt = midnight.add({ minutes: start });
       if (Temporal.Instant.compare(startAt.toInstant(), now) < 0) continue;
       const format = { timeZoneName: 'never', smallestUnit: 'second' } as const;

@@ -31,5 +31,4 @@ Bộ phiên bản M1 đã được chọn và ghi trong [hướng dẫn thiết 
 
 Xác thực và phân quyền dùng [session PostgreSQL và cookie cùng origin](adr/0001-auth-session.md).
 
-- Thử nghiệm ràng buộc loại trừ theo nhân viên và khoảng thời gian nửa mở cho hai trạng thái giữ chỗ. Xác minh migration với Prisma, cách ánh xạ lỗi và kết quả khi hai giao dịch ghi đồng thời trên PostgreSQL thật.
-- Xác minh cách đồng bộ thao tác đổi cấu hình ca/nghỉ với thao tác đặt lịch. Chốt cách admin giải quyết các lịch bị ảnh hưởng trước khi áp dụng thay đổi.
+M5A áp dụng [giao dịch, thứ tự khóa và exclusion constraint](adr/0002-booking-concurrency.md).

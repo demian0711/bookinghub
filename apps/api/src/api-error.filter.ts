@@ -7,6 +7,7 @@ import {
 import { STATUS_CODES } from 'node:http';
 import type { Response } from 'express';
 
+import { BookingConflict } from './appointments/booking-conflict';
 const messages: Record<number, string> = {
   400: 'Dữ liệu yêu cầu không hợp lệ.',
   401: 'Cần đăng nhập hoặc thông tin đăng nhập không hợp lệ.',
@@ -29,7 +30,13 @@ export class ApiErrorFilter implements ExceptionFilter {
       .json({
         statusCode: status,
         error: STATUS_CODES[status] ?? 'Error',
-        message: messages[status] ?? 'Không thể xử lý yêu cầu.',
+        message:
+          error instanceof BookingConflict
+            ? error.message
+            : (messages[status] ?? 'Không thể xử lý yêu cầu.'),
+        ...(error instanceof BookingConflict
+          ? { code: error.code, appointmentIds: error.appointmentIds }
+          : {}),
       });
   }
 }
