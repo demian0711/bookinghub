@@ -13,6 +13,7 @@ async function signIn(page: Page, role: 'admin-e2e' | 'mai' | 'staff-an') {
       domain: '127.0.0.1',
       path: '/api/v1',
       httpOnly: true,
+      secure: true,
       sameSite: 'Lax',
     },
   ]);
@@ -160,7 +161,7 @@ test('admin quản lý danh mục, ca nghỉ, xử lý 409 và khách vẫn đ�
   ).toBeVisible();
   await page.getByRole('button', { name: 'Bỏ ngày nghỉ' }).click();
   await expect(page.getByText('Chưa có ngày nghỉ.')).toBeVisible();
-  const client = await browser.newPage({ baseURL });
+  const client = await browser.newPage({ baseURL, ignoreHTTPSErrors: true });
   try {
     await signIn(client, 'mai');
     await client.goto('/dich-vu');

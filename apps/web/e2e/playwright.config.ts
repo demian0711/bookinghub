@@ -1,7 +1,12 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: '.',
-  testMatch: ['booking.spec.ts', 'staff.spec.ts', 'admin.spec.ts'],
+  testMatch: [
+    'booking.spec.ts',
+    'staff.spec.ts',
+    'admin.spec.ts',
+    'release.spec.ts',
+  ],
   workers: 1,
   timeout: 60000,
   reporter: [
@@ -11,7 +16,8 @@ export default defineConfig({
   outputDir: '../test-results',
   use: {
     baseURL: process.env.E2E_ORIGIN,
-    channel: 'chrome',
+    channel: process.env.CI ? undefined : 'chrome',
+    ignoreHTTPSErrors: true,
     viewport: { width: 390, height: 844 },
     locale: 'vi-VN',
     timezoneId: 'America/Los_Angeles',

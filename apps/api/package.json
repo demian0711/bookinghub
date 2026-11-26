@@ -6,6 +6,7 @@
     "dev": "prisma generate && tsc-watch --onSuccess \"node --env-file-if-exists=.env dist/main.js\"",
     "typecheck": "prisma generate && tsc --noEmit",
     "build": "prisma generate && tsc",
+    "test:unit": "pnpm run build && node ./node_modules/jest/bin/jest.js --runInBand --runTestsByPath test/salon-time.test.cjs",
     "test": "pnpm run build && node --env-file-if-exists=.env --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --runTestsByPath test/health.test.cjs",
     "test:integration": "pnpm run build && node test/run-integration.cjs",
     "migrate": "node --env-file-if-exists=.env ./node_modules/prisma/build/index.js migrate deploy",

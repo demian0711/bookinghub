@@ -301,7 +301,7 @@ Input dùng component từ registry shadcn/ui cho Tailwind 4. Font và ảnh min
 
 ### Chạy E2E trong Git Bash
 
-1. Mở Docker Desktop và đợi Docker chạy. Máy cần Google Chrome. Mở Git Bash tại thư mục BookingHub.
+1. Mở Docker Desktop và đợi Docker chạy. Máy cần Google Chrome và OpenSSL (đi kèm Git for Windows thông thường). Mở Git Bash tại thư mục BookingHub.
 2. Chạy hai lệnh sau. Bộ test tự tạo database PostgreSQL trong container riêng, áp dụng migration và mở web/API ở cổng tạm. Ngày hẹn thử là ngày salon hiện tại cộng hai ngày. Có thể giữ nguyên phiên dev đang chạy.
 
 ```bash
@@ -347,3 +347,7 @@ Cả năm chỉ số dùng ngày của `Appointment.startAt` ở múi giờ `Asi
 | Giá trị dịch vụ hoàn thành | Cộng giá VND tại lúc đặt của lịch `COMPLETED`. Chỉ số phản ánh giá trị dịch vụ theo lịch, còn việc thu tiền nằm ngoài phạm vi dữ liệu này.                |
 | Tỷ lệ hủy                  | Số lịch `CANCELLED` chia tổng số lịch trong phạm vi. Hiển thị dấu gạch khi tổng bằng 0.                                                                   |
 | Dịch vụ phổ biến           | Nhóm lịch `COMPLETED` theo ID dịch vụ, lấy tối đa 10 dịch vụ dẫn đầu. Tên lấy từ danh mục hiện tại, còn chi tiết từng lịch hiển thị bản chụp tên lúc đặt. |
+
+## M9 · Kiểm tra trước phát hành
+
+Chạy `pnpm test:unit` cho quy tắc ca và giờ salon. `pnpm test:e2e` khởi động NestJS ở production và Next.js từ bản build production qua HTTPS loopback với chứng chỉ tự ký sinh riêng cho lượt chạy. Playwright chấp nhận chứng chỉ thử nghiệm trong browser context. PostgreSQL riêng được tạo và dọn bằng Docker. Xem [checklist](release-checklist.md) và [báo cáo](test-report.md) để biết phạm vi đã xác minh.
