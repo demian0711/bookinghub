@@ -37,7 +37,8 @@ export class AvailabilityController {
   @Header('Cache-Control', 'no-store')
   @ApiOkResponse({ type: AvailabilityView })
   @ApiOperation({
-    summary: 'Giờ theo ca, khoảng nghỉ và ngày nghỉ. M4 chưa trừ lịch hẹn.',
+    summary:
+      'Giờ phù hợp lịch làm việc, đã loại các lịch PENDING và CONFIRMED của nhân viên.',
   })
   list(@Query() query: AvailabilityQuery) {
     return this.schedules.availability(query);

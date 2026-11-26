@@ -205,4 +205,44 @@ curl -i -b "$jar" "${headers[@]}" -X PUT "$schedule/week/1" \
 
 Các lệnh ghi thành công trả **204**, không có body. Thử thêm ngày nghỉ bằng `curl -i -b "$jar" "${headers[@]}" -X PUT "$schedule/days-off/$day"`, gọi lại API công khai cho cùng ngày để thấy `slots: []`. Đổi PUT thành DELETE để bỏ ngày nghỉ thử. Giờ sai, ca chồng hoặc ngày tra cứu ngoài cửa sổ trả 400. Cặp nhân viên–dịch vụ không hoạt động hoặc chưa phân công trả 404.
 
-M4 tính theo lịch làm việc. Việc trừ các lịch hẹn thực sự giữ chỗ sẽ được bổ sung ở M5. Xem hợp đồng tại http://localhost:4000/api/docs trong hai nhóm `availability` và `admin/schedule`.
+Từ M5A, availability cũng loại các khoảng giao với lịch PENDING hoặc CONFIRMED của cùng nhân viên. Xem hợp đồng tại http://localhost:4000/api/docs trong hai nhóm `availability` và `admin/schedule`.
+
+## M5A · Kiểm tra đặt lịch và chống trùng
+
+### Cách nhanh: chạy kiểm thử tự động
+
+1. Mở Docker Desktop và đợi engine sẵn sàng.
+2. Mở Git Bash ở gốc repo, chạy `pnpm test:integration`.
+3. Xem kết quả Jest ở cuối. Runner tạo một PostgreSQL mới, chạy toàn bộ migration, gửi hai request đặt cùng giờ và xác nhận đúng một request thành công. Test lỗi ghi lịch sử và chuyển trạng thái CANCELLED cũng chỉ chạy trong DB tạm.
+
+### Thử thủ công bằng Git Bash, không cần Postman
+
+Các bước bên dưới **tạo một lịch PENDING thật trong database local**. Nếu chỉ muốn kiểm chứng và tự dọn dữ liệu, dùng cách tự động bên trên.
+
+1. Chạy `pnpm db:up`, `pnpm db:migrate`, seed demo theo mục M2 nếu chưa có dữ liệu, rồi chạy `pnpm dev`.
+2. Trong cửa sổ Git Bash thứ hai, chạy khối lệnh lấy các biến `base`, `service`, `staff`, `day` ở mục M4. Nếu `slots` trống, chọn ngày khác có ca trong cửa sổ 30 ngày.
+3. Đăng nhập **khách demo**, nhập mật khẩu CUSTOMER bạn đã đặt ở bước seed:
+
+```bash
+jar=$(mktemp)
+headers=(-H 'Origin: http://localhost:3000' -H 'X-BookingHub-CSRF: 1' -H 'Content-Type: application/json')
+read -rsp 'Mật khẩu customer demo: ' DEMO_CUSTOMER_PASSWORD; echo
+export DEMO_CUSTOMER_PASSWORD
+node -e "console.log(JSON.stringify({email:'customer@demo.bookinghub.test',password:process.env.DEMO_CUSTOMER_PASSWORD}))" |
+  curl -fsS -c "$jar" "${headers[@]}" --data-binary @- "$base/auth/login"
+unset DEMO_CUSTOMER_PASSWORD
+```
+
+4. Lấy giờ trống, chọn suất đầu và gửi **cùng một body hai lần**. Nếu lệnh tạo body báo không có suất, hãy chọn lại ngày trước khi gửi.
+
+```bash
+availability="$base/availability?serviceId=$service&staffId=$staff&date=$day"
+body=$(curl -fsS "$availability" | node -e "const r=JSON.parse(require('node:fs').readFileSync(0,'utf8')); if(!r.slots.length)throw Error('Không có suất'); console.log(JSON.stringify({staffId:r.staffId,serviceId:r.serviceId,startAt:r.slots[0].startAt}))")
+curl -i -b "$jar" "${headers[@]}" -d "$body" "$base/appointments"
+curl -i -b "$jar" "${headers[@]}" -d "$body" "$base/appointments"
+curl -fsS "$availability"
+```
+
+Lần đầu mong đợi **201** và biên nhận có id, customerId, staffId, serviceId, startAt/endAt, serviceName, priceVnd, durationMinutes và status=PENDING. Lần sau trả **409 APPOINTMENT_SLOT_TAKEN**. Trong kết quả availability mới, các suất giao với lịch vừa đặt biến mất, suất bắt đầu đúng endAt vẫn có thể chọn. Nếu khách khác đã lấy chỗ trước cả lần gửi đầu, tải lại availability và chọn suất khác.
+
+5. Kết thúc bằng `curl -sS -b "$jar" "${headers[@]}" -X POST "$base/auth/logout"` rồi `rm -f -- "$jar"`. M5A chỉ có API tạo; xem lại kết quả ngay trong response 201. API xem danh sách và xử lý trạng thái thuộc M6.

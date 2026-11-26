@@ -8,7 +8,7 @@ Giờ bắt đầu gợi ý cách nhau 15 phút. Tính ca định kỳ theo gi�
 
 Toàn bộ khoảng `[start, end)` phải thuộc một ca, tránh khoảng nghỉ và ngày nghỉ. Không được đặt trong quá khứ. Lịch mới bắt đầu ở `PENDING`. Cả `PENDING` và `CONFIRMED` giữ chỗ. Hai lịch của cùng nhân viên trùng nhau khi mỗi lịch bắt đầu trước lúc lịch kia kết thúc. NestJS kiểm tra lại tại thời điểm ghi vì giờ trống đã hiển thị có thể vừa được người khác đặt.
 
-PostgreSQL phải bảo vệ điều kiện chống trùng khi các giao dịch đồng thời cùng ghi lịch giữ chỗ. Chỉ đọc kiểm tra trước khi ghi vẫn cho phép hai giao dịch cùng thấy chỗ trống. Cơ chế cụ thể cần được kiểm chứng bằng kiểm thử tích hợp.
+PostgreSQL phải bảo vệ điều kiện chống trùng khi các giao dịch đồng thời cùng ghi lịch giữ chỗ. Chỉ đọc kiểm tra trước khi ghi vẫn cho phép hai giao dịch cùng thấy chỗ trống. M5A áp dụng exclusion constraint trong PostgreSQL và trả APPOINTMENT_SLOT_TAKEN khi bị trùng.
 
 ## Chuyển trạng thái
 
@@ -39,7 +39,7 @@ M3 lưu giá nguyên 0–10.000.000 VND và thời lượng nguyên 1–480 phú
 
 Ngừng dịch vụ hoặc tài khoản nhân viên bằng active=false. Hồ sơ, dịch vụ và phân công vẫn tồn tại. Danh mục công khai chỉ trả nhân viên đang hoạt động được gán cho dịch vụ đang hoạt động. Có thể chuẩn bị phân công trong khi dịch vụ ngừng; phân công chỉ có hiệu lực công khai khi cả hai phía hoạt động.
 
-Khi triển khai đặt lịch ở M5, API phải đọc lại trạng thái hai phía và phân công lúc ghi, lấy giá và thời lượng từ dịch vụ trong database để lưu bản chụp trên lịch. Ngừng hoạt động, bỏ phân công hoặc thay đổi giá/thời lượng không tự hủy, dời hay tính lại lịch cũ. Lịch sẽ tham chiếu trực tiếp nhân viên và dịch vụ; bỏ một dòng phân công chỉ thay đổi khả năng nhận lịch mới.
+Ở M5A, API đọc lại trạng thái hai phía và phân công lúc ghi, lấy giá và thời lượng từ dịch vụ trong database để lưu bản chụp trên lịch. Ngừng hoạt động, bỏ phân công hoặc thay đổi giá/thời lượng không tự hủy, dời hay tính lại lịch cũ. Lịch sẽ tham chiếu trực tiếp nhân viên và dịch vụ; bỏ một dòng phân công chỉ thay đổi khả năng nhận lịch mới.
 
 ## Lịch làm việc và giờ trống (M4)
 
@@ -49,4 +49,4 @@ Salon dùng múi giờ IANA `Asia/Ho_Chi_Minh`. Ca định kỳ và khoảng ngh
 - Chỉ bắt đầu tại phút **:00, :15, :30, :45**. Ca 09:07 có giờ bắt đầu đầu tiên là 09:15. Giá và thời lượng lấy từ dịch vụ đang hoạt động ở backend.
 - Giờ cấu hình dùng HH:mm. Chỉ cho phép 24:00 làm mốc kết thúc ngày. Không hỗ trợ ca qua nửa đêm. Mỗi ca và mỗi khoảng nghỉ phải có start < end. Các ca cùng nhân viên và thứ không chồng nhau; các khoảng nghỉ nằm trọn trong ca cha và không chồng nhau.
 - Dùng khoảng nửa mở [start, end). Dịch vụ phải nằm trọn trong **một** ca, không ghép các ca kể cả khi nối sát. Có thể kết thúc đúng lúc bắt đầu nghỉ hoặc kết thúc ca, và bắt đầu đúng lúc hết nghỉ. Ngày nghỉ chặn toàn bộ ca của nhân viên trong ngày đó.
-- M4 chỉ trả giờ phù hợp cấu hình cho cặp nhân viên–dịch vụ đang hoạt động và có phân công. M5 cần đọc các lịch PENDING/CONFIRMED của nhân viên, loại mọi khoảng giao với chúng và kiểm tra lại khi ghi lịch. Thao tác tạo lịch và thay đổi cấu hình phải phối hợp khóa cùng nhân viên để phát hiện lịch bị ảnh hưởng.
+- M5A chỉ trả giờ phù hợp cấu hình cho cặp nhân viên–dịch vụ đang hoạt động và có phân công. API đọc các lịch PENDING/CONFIRMED của nhân viên, loại mọi khoảng giao với chúng và kiểm tra lại khi ghi lịch. Thao tác tạo lịch và thay đổi cấu hình phải phối hợp khóa cùng nhân viên để phát hiện lịch bị ảnh hưởng.

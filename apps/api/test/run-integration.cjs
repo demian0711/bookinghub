@@ -75,6 +75,7 @@ async function run() {
         'test/auth.test.cjs',
         'test/catalog.test.cjs',
         'test/availability.test.cjs',
+        'test/appointment.test.cjs',
       ],
       options,
     );
