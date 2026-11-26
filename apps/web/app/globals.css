@@ -1,6 +1,354 @@
 @import 'tailwindcss';
-:root {
-  font-family: 'Segoe UI', sans-serif;
-  background: #faf8f4;
-  color: #342921;
+@theme {
+  --color-ring: #345740;
+  --color-primary-foreground: #ffffff;
+  --color-muted-foreground: #535e54;
+  --color-background: #faf8f3;
+  --color-foreground: #242b25;
+  --color-primary: #345740;
+  --color-muted: #535e54;
+  --color-input: #8d988c;
+  --color-line: #d8d9ce;
+  --color-destructive: #9e3329;
+  --font-sans: 'DM Sans Variable', 'Segoe UI', sans-serif;
+  --font-display: 'Playfair Display Variable', Georgia, serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+main {
+  flex: 1;
+}
+h1,
+h2,
+h3,
+.brand {
+  font-family: var(--font-display);
+  letter-spacing: -0.045em;
+  line-height: 1.16;
+}
+h1 {
+  font-size: clamp(2.6rem, 5.5vw, 5rem);
+}
+h2 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+}
+h3 {
+  font-size: 1.65rem;
+}
+p {
+  line-height: 1.65;
+}
+.shell {
+  width: min(calc(100% - 3rem), 76rem);
+  margin-inline: auto;
+}
+.top,
+.foot,
+.top nav,
+.section-head,
+.actions,
+.card-top,
+.card-meta,
+.card-meta span,
+.brand,
+.primary,
+.secondary,
+.text-link,
+.account-link {
+  display: flex;
+  align-items: center;
+}
+.top,
+.foot,
+.section-head,
+.card-top,
+.card-meta {
+  justify-content: space-between;
+}
+.top {
+  min-height: 5rem;
+}
+.top nav {
+  gap: clamp(1rem, 3vw, 3rem);
+}
+.top nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.brand {
+  font-size: 1.65rem;
+  font-weight: 650;
+  gap: 0.55rem;
+}
+.brand svg,
+.text-link,
+.detail > svg {
+  color: var(--color-primary);
+}
+header,
+footer {
+  border-color: var(--color-line);
+}
+header {
+  border-bottom: 1px solid var(--color-line);
+}
+footer {
+  border-top: 1px solid var(--color-line);
+}
+.foot {
+  min-height: 6rem;
+  gap: 1rem;
+  font-size: 0.88rem;
+  color: var(--color-muted);
+}
+.account-link,
+.secondary {
+  border: 1px solid var(--color-input);
+  border-radius: 100px;
+  padding: 0.5rem 1rem;
+  gap: 0.5rem;
+}
+.hero {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: clamp(1.5rem, 5vw, 5rem);
+  align-items: center;
+  padding-block: clamp(2rem, 5vw, 5rem);
+  border-bottom: 1px solid var(--color-line);
+}
+.hero h1 {
+  font-size: clamp(3.4rem, 6.5vw, 6.6rem);
+  line-height: 1.13;
+}
+.hero em {
+  color: var(--color-primary);
+  font-style: italic;
+}
+.hero-copy > p {
+  max-width: 23rem;
+  margin: 1.6rem 0;
+  color: var(--color-muted);
+  font-size: 1.07rem;
+}
+.hero-photo {
+  position: relative;
+  aspect-ratio: 1.35;
+  border-radius: 42% 1.4rem 1.4rem 1.4rem;
+  overflow: hidden;
+  background: #d9d7c8;
+}
+.hero-photo img {
+  object-fit: cover;
+}
+.primary,
+.secondary,
+.text-link {
+  display: inline-flex;
+  gap: 0.7rem;
+  font-weight: 600;
+  min-height: 44px;
+  justify-content: center;
+}
+.primary {
+  background: var(--color-primary);
+  color: white;
+  border-radius: 100px;
+  padding: 0.8rem 1.45rem;
+}
+.primary:hover {
+  background: #24442e;
+}
+.text-link:hover,
+.top nav a:hover {
+  text-decoration: underline;
+}
+.section-head {
+  gap: 1rem;
+  margin-bottom: 1.65rem;
+}
+.catalog-section,
+.inner {
+  padding-block: clamp(2.5rem, 5vw, 5rem);
+}
+.intro {
+  margin: 0.75rem 0 2rem;
+  color: var(--color-muted);
+}
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+}
+.service-card,
+.detail,
+.account-panel {
+  border: 1px solid var(--color-line);
+  border-radius: 1.1rem;
+  background: #fffdf8;
+}
+.service-card {
+  display: block;
+  padding: 1.5rem;
+  height: 100%;
+  transition: border-color 0.15s;
+}
+.service-card:hover {
+  border-color: var(--color-primary);
+}
+.card-top {
+  color: var(--color-primary);
+  margin-bottom: 1.2rem;
+}
+.service-card p {
+  color: var(--color-muted);
+  margin: 0.6rem 0 1.4rem;
+}
+.card-meta {
+  border-top: 1px solid var(--color-line);
+  padding-top: 0.85rem;
+  font-size: 0.95rem;
+}
+.card-meta span,
+.actions {
+  gap: 0.5rem;
+}
+.actions {
+  margin-top: 1rem;
+}
+.detail,
+.account-panel {
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+.detail {
+  max-width: 50rem;
+  margin-top: 1.5rem;
+}
+.detail h1,
+.detail p {
+  margin-block: 1rem;
+}
+.account-panel {
+  width: min(calc(100% - 2rem), 30rem);
+  margin: clamp(2rem, 7vw, 6rem) auto;
+}
+.account-panel h1 {
+  font-size: 2.6rem;
+  margin-bottom: 1.7rem;
+}
+.account-panel form {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.account-panel label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+.account-panel small {
+  color: var(--color-muted);
+  margin-top: -0.8rem;
+}
+.account-panel p,
+.notice {
+  overflow-wrap: anywhere;
+}
+.account-panel dl,
+.detail dl {
+  margin: 1.5rem 0;
+}
+.account-panel dl div,
+.detail dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--color-line);
+}
+dd {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.notice {
+  padding: 1.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+}
+.notice button,
+[role='alert'] button {
+  text-decoration: underline;
+  min-height: 44px;
+}
+[role='alert'] {
+  color: var(--color-destructive);
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 4px;
+}
+.skip {
+  position: absolute;
+  top: -8rem;
+  left: 1rem;
+  background: white;
+  padding: 1rem;
+  z-index: 5;
+}
+.skip:focus {
+  top: 1rem;
+}
+@media (max-width: 700px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .hero-photo {
+    aspect-ratio: 1.75;
+  }
+  .top {
+    min-height: 4.25rem;
+  }
+  .shell {
+    width: calc(100% - 2rem);
+  }
+  .brand {
+    font-size: 1.4rem;
+  }
+  .account-link {
+    padding: 0.4rem 0.65rem;
+  }
+  .foot {
+    flex-wrap: wrap;
+  }
+  .section-head {
+    align-items: baseline;
+  }
+  .text-link {
+    white-space: nowrap;
+  }
+  .hero-copy > p {
+    margin: 1rem 0;
+  }
+  .top nav {
+    gap: 0.7rem;
+    font-size: 0.9rem;
+  }
 }

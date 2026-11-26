@@ -40,7 +40,7 @@ docker compose ps
 pnpm dev
 ```
 
-Mở http://localhost:3000 rồi bấm **Kiểm tra kết nối**. Swagger ở http://localhost:4000/api/docs trong development. Từ một cửa sổ Git Bash thứ hai, kiểm tra API trực tiếp và readiness qua proxy của web.
+Mở http://localhost:3000 để xem trang chủ và chọn **Dịch vụ**. Swagger ở http://localhost:4000/api/docs trong development. Từ một cửa sổ Git Bash thứ hai, kiểm tra API trực tiếp và readiness qua proxy của web.
 
 ```bash
 curl -i http://localhost:4000/api/v1/health
@@ -287,3 +287,12 @@ curl -i -b "$jar" "${headers[@]}" -X PATCH "$base/appointments/$id/status" -d '{
 5. HTTP 200 trả lịch và sự kiện mới. HTTP 409 yêu cầu đọc lại lịch và đối chiếu mốc thời gian. HTTP 404 dùng chung cho ID ngoài phạm vi và ID không tồn tại. Gọi lại `GET /availability` như mục M4 để thấy giờ vừa hủy nếu vẫn đủ điều kiện nhận lịch mới.
 
 Danh sách hỗ trợ thêm `date=YYYY-MM-DD` theo ngày bắt đầu tại salon và `staffId=UUID`. Bộ lọc luôn thu hẹp phạm vi của phiên. Trang từ 1 đến 1000, tối đa 50 lịch/trang. Sort cho phép `startAt` hoặc `createdAt`, chiều `asc` hoặc `desc`. Swagger nhóm `appointments` mô tả body và kết quả.
+
+## M7A · Trang công khai và tài khoản
+
+1. Tại Git Bash trong thư mục BookingHub, chạy `pnpm install --frozen-lockfile`, `pnpm db:up`, `pnpm db:migrate` và `pnpm dev`. Nếu đã có phiên dev đang chạy, dùng lại cửa sổ đó.
+2. Mở http://localhost:3000, chọn **Đặt lịch salon** để bắt đầu bằng danh mục. Bấm tên dịch vụ để xem giá VND và thời lượng. Nếu dữ liệu local còn trống, trang sẽ báo chưa có dịch vụ. Có thể dùng seed demo theo mục M3.
+3. Chọn **Tài khoản**, sau đó **Đăng ký**. Nhập tên, email và mật khẩu dài 12–128 ký tự. Sau khi tạo tài khoản, đăng nhập bằng email và mật khẩu vừa nhập. Tải lại trang tài khoản để kiểm tra tên và email, rồi chọn **Đăng xuất**.
+4. Để chạy kiểm thử tự động, mở Docker Desktop và chạy `pnpm test:web`. Máy cần Google Chrome. Playwright dùng Chrome headless, bản build web riêng, các cổng tạm và PostgreSQL tạm. Test bao gồm giao diện mobile, danh mục, biểu mẫu, đăng nhập sai/đúng, hai phiên trình duyệt độc lập và đường dẫn quay lại.
+
+Input dùng component từ registry shadcn/ui cho Tailwind 4. Font và ảnh minh họa được phục vụ từ ứng dụng. [shadcn/ui và Tailwind 4](https://ui.shadcn.com/docs/tailwind-v4) · [Ảnh minh họa salon](https://images.unsplash.com/photo-1600948836101-f9ffda59d250)

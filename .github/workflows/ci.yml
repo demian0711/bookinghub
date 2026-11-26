@@ -28,6 +28,7 @@ jobs:
       - run: pnpm db:migrate
       - run: pnpm test
       - run: pnpm test:integration
+      - run: pnpm test:web
       - run: pnpm build
       - if: always() && hashFiles('.env') != ''
         run: pnpm db:down
