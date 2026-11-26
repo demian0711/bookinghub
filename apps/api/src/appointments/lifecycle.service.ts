@@ -37,10 +37,33 @@ const events = {
   ],
 } satisfies Prisma.AppointmentEventFindManyArgs;
 
+// Nhân viên cần tên hiển thị để đón khách. Giới hạn các trường ngay trong truy vấn.
+const staffFields = {
+  id: true,
+  serviceName: true,
+  priceVnd: true,
+  durationMinutes: true,
+  startAt: true,
+  endAt: true,
+  status: true,
+  customer: { select: { displayName: true } },
+} satisfies Prisma.AppointmentSelect;
+const staffDetailFields = {
+  ...staffFields,
+  events: {
+    ...events,
+    select: { status: true, occurredAt: true, reason: true },
+  },
+} satisfies Prisma.AppointmentSelect;
+
 @Injectable()
 export class LifecycleService {
   constructor(private readonly db: PrismaService) {}
-  async list(actor: Actor, query: AppointmentQuery) {
+  async list(
+    actor: Actor,
+    query: AppointmentQuery,
+    view: 'standard' | 'staff' = 'standard',
+  ) {
     const { date, status, staffId, page, pageSize, sort, order } = query;
     const bounds = date === undefined ? undefined : dayBounds(salonDate(date));
     // Giao bộ lọc với phạm vi từ phiên, kể cả khi nhân viên lọc theo người khác.
@@ -58,6 +81,7 @@ export class LifecycleService {
       [
         this.db.appointment.findMany({
           where,
+          select: view === 'staff' ? staffFields : undefined,
           skip: (page - 1) * pageSize,
           take: pageSize,
           orderBy: [{ [sort]: order }, { id: 'asc' }],
@@ -68,14 +92,17 @@ export class LifecycleService {
     );
     return { items, total, page, pageSize };
   }
-  async detail(actor: Actor, id: string) {
-    const [row] = await this.db.$transaction(
-      [
-        this.db.appointment.findFirst({
-          where: { id, ...scope(actor) },
-          include: { events },
-        }),
-      ],
+  async detail(
+    actor: Actor,
+    id: string,
+    view: 'standard' | 'staff' = 'standard',
+  ) {
+    const where = { id, ...scope(actor) };
+    const row = await this.db.$transaction(
+      async (tx) =>
+        view === 'staff'
+          ? tx.appointment.findFirst({ where, select: staffDetailFields })
+          : tx.appointment.findFirst({ where, include: { events } }),
       { isolationLevel: 'RepeatableRead' },
     );
     if (!row) throw new NotFoundException();

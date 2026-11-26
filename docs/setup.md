@@ -318,3 +318,12 @@ pnpm test:e2e
 3. Bấm **Tiếp tục**, kiểm tra dịch vụ, nhân viên, ngày, giờ và giá. Chọn **Đăng nhập để xác nhận** bằng tài khoản khách hoặc đăng ký ngay ở màn hình đăng nhập. Sau đăng nhập, web tải lại các giờ còn trống. Nếu giờ vẫn còn, bấm **Xác nhận đặt lịch**.
 4. Tại màn hình thành công, xem giá và thời lượng khi đặt. Bấm **← Lịch của tôi** hoặc vào **Tài khoản → Lịch của tôi**. Lọc theo ngày hoặc trạng thái. Mỗi trang hiển thị tối đa năm lịch. Chọn một lịch, bấm **Hủy lịch**, rồi **Giữ lịch** để quay lại hoặc **Xác nhận hủy** để gửi yêu cầu. Backend xét hạn hai giờ ngay khi xử lý.
 5. Để thử hết chỗ, dùng Chrome thường và cửa sổ ẩn danh với hai tài khoản khách khác nhau. Đưa cả hai đến bước xác nhận cùng dịch vụ, nhân viên, ngày và giờ. Xác nhận lần lượt ở hai cửa sổ. Khách thứ hai sẽ thấy thông báo giờ vừa có người đặt và danh sách giờ mới.
+
+## M8A · Thử khu vực nhân viên bằng Chrome
+
+1. Mở Docker Desktop. Trong Git Bash tại thư mục BookingHub, chạy `pnpm install --frozen-lockfile`, `pnpm db:up`, rồi `pnpm db:migrate`. Nếu chưa tạo tài khoản demo, làm bước tạo ba mật khẩu ở mục Xác thực M2. Dùng lại mật khẩu đã đặt nếu tài khoản đã tồn tại. Mở `pnpm dev` hoặc dùng lại phiên dev đang chạy.
+2. Tạo một lịch để thử nếu nhân viên chưa có lịch. Dùng cửa sổ ẩn danh, đăng nhập bằng `customer@demo.bookinghub.test`, đặt dịch vụ **Cắt và tạo kiểu** cho nhân viên demo ở một ngày còn ca trống. Ghi lại ngày hẹn.
+3. Trong cửa sổ Chrome thường, mở http://localhost:3000/staff và chọn **Đăng nhập**. Dùng `staff@demo.bookinghub.test` và mật khẩu STAFF đã đặt ở bước seed. Nếu đang ở trang tài khoản nhân viên, chọn **Lịch làm việc của tôi**.
+4. Mặc định danh sách hiển thị hôm nay theo giờ Việt Nam. Chọn **Ngày tại salon** trùng ngày hẹn, chọn trạng thái hoặc giữ **Tất cả trạng thái**, rồi bấm **Xem lịch**. Bấm lịch cần xử lý. Trang hiện tên khách, dịch vụ, thời gian, giá khi đặt, trạng thái và lịch sử.
+5. Với lịch **Chờ xác nhận**, chọn **Xác nhận lịch → Lưu thay đổi**, rồi tải lại trang. Với lịch đang giữ chỗ, **Hủy lịch** yêu cầu lý do (tối đa 500 ký tự). **Ghi nhận không đến** xuất hiện từ lúc bắt đầu và **Hoàn thành** từ lúc kết thúc, đều yêu cầu lịch đã xác nhận. Các thao tác này ghi vào dữ liệu local, nên hãy dùng lịch vừa tạo để thử.
+6. Để kiểm tra tự động cả xung đột, lịch quá khứ và quyền giữa hai nhân viên, chạy `pnpm test:e2e` bằng Git Bash. Bộ test tạo khách, nhân viên và lịch trong PostgreSQL tạm. Có thể giữ nguyên phiên dev và dữ liệu demo local.

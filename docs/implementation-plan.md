@@ -27,3 +27,7 @@ Trước M8 chốt chỉ số và kỳ thống kê cho dashboard.
 ### M7B · Kiểm chứng trên trình duyệt
 
 Ba kịch bản Playwright đã đạt trên Chrome với Next.js, NestJS và PostgreSQL riêng. Bộ test xác nhận phản hồi 409 khi hai khách đặt cùng giờ, việc kiểm tra lại suất sau đăng nhập, quyền riêng tư của lịch, phân trang, bản chụp giá/thời lượng và chính sách hủy. Khi hủy thành công, giờ vừa trả lại có thể chọn lại. Workflow pull request chạy `pnpm test:e2e` và thu thập report/trace khi lỗi.
+
+### M8A · Khu vực nhân viên
+
+Đã triển khai `/staff` và chi tiết lịch được giao. Web xác minh phiên khi mở khu vực, API kiểm tra STAFF và phạm vi lịch ở từng request. Nhân viên có thể lọc theo ngày salon và trạng thái, xác nhận, hủy kèm lý do, ghi nhận không đến và hoàn thành. Nút thao tác dùng mốc thời gian từ backend. Khi có xung đột, trang tải lại chi tiết. Bốn kịch bản E2E nhân viên và ba kịch bản khách đã đạt trên Chrome với PostgreSQL riêng. Khu vực quản trị và dashboard thống kê thuộc phần tiếp theo.

@@ -439,3 +439,27 @@ button:disabled {
 .booking fieldset {
   min-width: 0;
 }
+
+.staff-area nav.actions {
+  gap: 1.25rem;
+}
+.staff-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+  align-items: end;
+  margin-block: 1rem 1.5rem;
+}
+.staff-filters .field {
+  margin: 0;
+}
+.staff-area textarea {
+  width: 100%;
+  border: 1px solid var(--color-input);
+  border-radius: 0.55rem;
+  padding: 0.75rem;
+  font: inherit;
+}
+.staff-area .detail {
+  overflow-wrap: anywhere;
+}
