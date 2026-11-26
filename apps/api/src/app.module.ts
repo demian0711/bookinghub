@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthController } from './health.controller';
-@Module({ imports: [PrismaModule], controllers: [HealthController] })
+import { AuthModule } from './auth/auth.module';
+@Module({
+  imports: [PrismaModule, AuthModule],
+  controllers: [HealthController],
+})
 export class AppModule {}

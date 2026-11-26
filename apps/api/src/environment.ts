@@ -17,5 +17,18 @@ export function readEnvironment() {
   const mode = process.env.NODE_ENV ?? 'development';
   if (!['production', 'development', 'test'].includes(mode))
     throw new Error('NODE_ENV không hợp lệ.');
-  return { databaseUrl, port, mode };
+  const webOrigin =
+    process.env.WEB_ORIGIN ??
+    (mode === 'production' ? '' : 'http://localhost:3000');
+  const origin = URL.parse(webOrigin);
+  if (
+    !origin ||
+    origin.origin !== webOrigin ||
+    !['http:', 'https:'].includes(origin.protocol) ||
+    (mode === 'production' && origin.protocol !== 'https:')
+  )
+    throw new Error(
+      'WEB_ORIGIN phải là origin chính xác của web, dùng HTTPS ở production.',
+    );
+  return { databaseUrl, port, mode, webOrigin };
 }
