@@ -1,39 +1,44 @@
-'use client';
-import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { ArrowRight, MoveUpRight } from 'lucide-react';
+import { Catalog } from '@/components/catalog';
 export default function Home() {
-  const [status, setStatus] = useState('');
-  const [pending, setPending] = useState(false);
-  async function checkReadiness() {
-    setPending(true);
-    try {
-      const response = await fetch('/api/v1/ready', { cache: 'no-store' });
-      setStatus(
-        response.ok
-          ? 'API và database đã sẵn sàng.'
-          : 'Hệ thống chưa sẵn sàng.',
-      );
-    } catch {
-      setStatus('Không thể kết nối tới API.');
-    } finally {
-      setPending(false);
-    }
-  }
   return (
-    <main className="mx-auto max-w-3xl px-6 py-24">
-      <h1 className="font-serif text-6xl">BookingHub</h1>
-      <p className="mt-5 text-xl">
-        Ứng dụng đặt lịch cho salon tóc đang được xây dựng.
-      </p>
-      <button
-        onClick={checkReadiness}
-        disabled={pending}
-        className="mt-10 rounded bg-stone-800 px-5 py-3 text-white disabled:opacity-60"
-      >
-        {pending ? 'Đang kiểm tra…' : 'Kiểm tra kết nối'}
-      </button>
-      <p role="status" className="mt-3">
-        {status}
-      </p>
-    </main>
+    <div className="shell">
+      <section className="hero">
+        <div className="hero-copy">
+          <h1>
+            Một cuộc hẹn
+            <br />
+            cho <em>mái tóc.</em>
+          </h1>
+          <p>
+            Khám phá dịch vụ chăm sóc tóc và chọn dịch vụ phù hợp cho lần ghé
+            salon tiếp theo.
+          </p>
+          <Link className="primary" href="/dich-vu">
+            Đặt lịch salon <ArrowRight size={18} />
+          </Link>
+        </div>
+        <div className="hero-photo">
+          <Image
+            src="/salon.jpg"
+            alt="Không gian tạo kiểu tóc với gương và ghế salon"
+            fill
+            sizes="(max-width: 700px) 95vw, 50vw"
+            priority
+          />
+        </div>
+      </section>
+      <section className="catalog-section">
+        <div className="section-head">
+          <h2>Dịch vụ tại salon</h2>
+          <Link className="text-link" href="/dich-vu">
+            Xem tất cả <MoveUpRight size={17} />
+          </Link>
+        </div>
+        <Catalog featured />
+      </section>
+    </div>
   );
 }
