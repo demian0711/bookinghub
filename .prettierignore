@@ -8,3 +8,6 @@ apps/web/next-env.d.ts
 .env
 .env.*
 !.env.example
+
+playwright-report/
+test-results/

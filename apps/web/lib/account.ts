@@ -13,7 +13,9 @@ export function returnPath(raw: string | string[] | undefined) {
     const url = new URL(raw, base);
     if (
       url.origin === base &&
-      /^\/(?:tai-khoan|dich-vu(?:\/[a-f0-9-]{36})?)?$/i.test(url.pathname)
+      /^\/(?:tai-khoan|dat-lich|(?:lich-cua-toi|dich-vu)(?:\/[a-f0-9-]{36})?)?$/i.test(
+        url.pathname,
+      )
     )
       return url.pathname + url.search + url.hash;
   } catch {

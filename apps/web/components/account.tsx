@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { notifySession, submitAuth, type User } from '@/lib/account';
 export function Account() {
@@ -88,6 +89,13 @@ export function Account() {
               <dd>{user.email}</dd>
             </div>
           </dl>
+          {user.role === 'CUSTOMER' && (
+            <p>
+              <Link className="text-link" href="/lich-cua-toi">
+                Lịch của tôi →
+              </Link>
+            </p>
+          )}
           <button disabled={busy} className="secondary" onClick={logout}>
             {busy ? 'Đang đăng xuất…' : 'Đăng xuất'}
           </button>

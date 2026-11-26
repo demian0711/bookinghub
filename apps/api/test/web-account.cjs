@@ -57,6 +57,16 @@ async function run() {
     web = webRequire('next')({ dir: project, dev: false });
     await web.prepare();
     server.on('request', web.getRequestHandler());
+    if (process.argv.includes('--e2e')) {
+      const { runBookingTests } = require('./run-booking-e2e.cjs');
+      await runBookingTests({
+        db: api.get(PrismaService),
+        origin,
+        webDir,
+        webRequire,
+      });
+      return;
+    }
     const { chromium } = webRequire('playwright');
     browser = await chromium.launch({ channel: 'chrome', headless: true });
     const page = await browser.newPage({

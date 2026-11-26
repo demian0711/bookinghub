@@ -29,6 +29,15 @@ jobs:
       - run: pnpm test
       - run: pnpm test:integration
       - run: pnpm test:web
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: bookinghub-e2e
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
       - run: pnpm build
       - if: always() && hashFiles('.env') != ''
         run: pnpm db:down
