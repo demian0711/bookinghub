@@ -15,3 +15,7 @@ M0 đã hoàn thành. M1 đã triển khai và chạy thử trên Windows với 
 | M8 · Web vận hành               | M6, M7           | Màn hình staff/admin và dashboard cơ bản                                                        | Kiểm tra staff chỉ xử lý lịch được giao, admin quản lý toàn salon. Đối chiếu số liệu dashboard với lịch thực và kiểm tra lại luồng khách sau thay đổi cấu hình.                                                               |
 
 Trước M8 chốt chỉ số và kỳ thống kê cho dashboard.
+
+### M5B · Bảo toàn lịch khi sửa cấu hình
+
+Đã triển khai preview ca, kiểm tra lại sau khi lấy khóa, phản hồi xung đột cho admin và chuyển ngày nghỉ nguyên tử. Test tích hợp bao phủ thay đổi ca/nghỉ, cạnh tranh với đặt lịch và bảo toàn bản chụp khi đổi danh mục.

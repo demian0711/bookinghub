@@ -22,3 +22,9 @@ POST dùng ON CONFLICT ON CONSTRAINT appointment_staff_held_excl DO NOTHING và 
 Appointment tham chiếu User, StaffProfile và Service bằng khóa ngoại RESTRICT khi xóa. Bản chụp tên, giá và thời lượng cùng startAt/endAt tồn tại độc lập với danh mục. Trigger ghi sự kiện tạo với actor là khách từ phiên; thay đổi status ghi trạng thái trước/sau và thời điểm database. Khi M6 bổ sung API chuyển trạng thái, service phải kiểm tra quyền, đặt actor đã xác thực qua set_config('bookinghub.actor_id', ..., true) và cập nhật trong cùng transaction. Thiếu actor khi chuyển trạng thái làm toàn bộ cập nhật rollback.
 
 Availability đọc cấu hình và lịch giữ chỗ nhất quán ở REPEATABLE READ. Kết quả chỉ đúng tại snapshot của request. Chỉ HTTP 201 từ POST xác nhận đã giữ chỗ.
+
+## M5B · Sửa cấu hình khi đang nhận lịch
+
+POST preview ca trả danh sách lịch bị ảnh hưởng tại thời điểm đọc. Khóa kết thúc cùng transaction của preview. PUT lấy lại khóa hàng StaffProfile và đọc lại các lịch chưa kết thúc ở READ COMMITTED trước khi ghi. Nếu khách vừa đặt thành công, admin nhận 409. Nếu admin ghi trước, khách phải thỏa cấu hình vừa lưu. Xóa ca dùng cùng PUT với mảng ca rỗng. Thay khoảng nghỉ cũng dùng toàn bộ cấu hình của thứ đó.
+
+Thêm ngày nghỉ kiểm tra khoảng nửa mở từ đầu ngày salon đến đầu ngày kế tiếp. PATCH chuyển ngày nghỉ kiểm tra ngày nguồn, ngày đích và lịch giữ chỗ trước khi cập nhật khóa ngày trong cùng transaction. DELETE bỏ ngày nghỉ chỉ mở thêm thời gian làm việc. Mọi thao tác này đều lấy khóa của nhân viên. Lỗi 409 chứa mã lịch, trạng thái và hai thời điểm để admin xác định khoảng cần giữ. Admin có thể chỉnh đề xuất và gửi lại. Việc thay cấu hình không ghi vào lịch hẹn hay lịch sử trạng thái.

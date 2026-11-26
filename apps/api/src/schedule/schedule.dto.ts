@@ -56,3 +56,17 @@ export class ScheduleView {
   @ApiProperty({ type: [WeekdayView] }) week!: WeekdayView[];
   @ApiProperty({ type: [String], example: ['2026-12-01'] }) daysOff!: string[];
 }
+
+export class MoveDayOffDto {
+  @ApiProperty({ format: 'date', description: 'Ngày nghỉ mới theo giờ salon.' })
+  @IsString()
+  date!: string;
+}
+export class AffectedAppointmentView extends SlotDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ enum: ['PENDING', 'CONFIRMED'] }) status!: string;
+}
+export class ScheduleImpactView {
+  @ApiProperty({ type: [AffectedAppointmentView] })
+  affectedAppointments!: AffectedAppointmentView[];
+}
