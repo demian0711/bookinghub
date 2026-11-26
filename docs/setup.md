@@ -100,3 +100,63 @@ Thiếu header CSRF hoặc sai Origin trả 403. Tài khoản bị khóa và m�
 ### Kiểm thử với PostgreSQL riêng
 
 Chạy `pnpm test:integration` từ gốc khi Docker Engine hoạt động. Runner tạo container PostgreSQL mới với mật khẩu và cổng loopback ngẫu nhiên, dùng tmpfs, áp dụng migration, chạy Jest qua HTTP rồi dừng container. DATABASE_URL của test được lấy từ container này. Database local vẫn được giữ cho smoke test M1 (`pnpm test`).
+
+## Kiểm tra danh mục M3 bằng Git Bash
+
+**Cách nhanh nhất** là mở Docker Desktop, rồi chạy `pnpm test:integration` tại gốc repo. Test tự tạo tài khoản, dịch vụ và phân công trong PostgreSQL tạm, gửi HTTP đến NestJS thật và dọn container khi xong.
+
+### Xem API công khai trong trình duyệt
+
+1. Tại gốc repo, chạy `pnpm db:up` rồi `pnpm db:migrate`. Nếu cần dữ liệu mẫu, chạy phần tạo ba tài khoản demo bên trên bằng mật khẩu bạn tự đặt. Seed M3 tạo dịch vụ **Cắt và tạo kiểu** (150.000 VND, 45 phút) và gán cho tài khoản staff demo. Nếu đã seed từ M2, chạy lại seed để thêm danh mục; mật khẩu đã có vẫn được giữ.
+2. Chạy `pnpm dev`, giữ cửa sổ Git Bash mở. Nếu đã có một phiên dev đang chạy, dùng lại phiên đó sau khi đã sinh Prisma Client mới và khởi động lại API.
+3. Mở http://localhost:3000/api/v1/services trong Chrome. Danh sách nằm trong `items`. Nếu danh mục trống, kết quả hợp lệ là `items: []`.
+4. Sau khi seed, mở http://localhost:3000/api/v1/services/bedc0c0a-d5a3-483a-adcb-772ffc926c88/staff để xem nhân viên được phân công. Kết quả công khai chỉ gồm `id`, `displayName` và `bio`.
+5. Thử http://localhost:3000/api/v1/services?page=1&pageSize=2&sort=priceVnd&order=desc . Thêm `q` để tìm theo tên, không phân biệt hoa thường. Danh sách dịch vụ cho sort theo `name`, `priceVnd`, `durationMinutes`; danh sách nhân viên theo `displayName`. Hai chiều hợp lệ là `asc` và `desc`. Page bắt đầu từ 1, pageSize mặc định 20, tối đa 50. `hasNext` báo còn trang sau. ID được dùng để thứ tự ổn định khi giá trị sort bằng nhau.
+
+### Thử quyền admin bằng curl
+
+Mở **cửa sổ Git Bash thứ hai**. Dùng mật khẩu bạn đã seed cho `admin@demo.bookinghub.test`. Cookie lưu trong tệp tạm ngoài repo; terminal không hiển thị mật khẩu khi nhập.
+
+```bash
+base=http://localhost:3000/api/v1
+jar=$(mktemp)
+headers=(-H 'Origin: http://localhost:3000' -H 'X-BookingHub-CSRF: 1' -H 'Content-Type: application/json')
+read -rsp 'Mật khẩu admin demo: ' DEMO_ADMIN_PASSWORD; echo
+export DEMO_ADMIN_PASSWORD
+node -e "console.log(JSON.stringify({email:'admin@demo.bookinghub.test',password:process.env.DEMO_ADMIN_PASSWORD}))" |
+  curl -sS -c "$jar" "${headers[@]}" --data-binary @- "$base/auth/login"
+unset DEMO_ADMIN_PASSWORD
+```
+
+Kết quả đăng nhập phải có `"role":"ADMIN"`. Tạo dịch vụ thử:
+
+```bash
+curl -sS -b "$jar" "${headers[@]}" "$base/admin/services" \
+  -d '{"name":"Goi dau thu","description":"Dich vu test","priceVnd":80000,"durationMinutes":30}'
+```
+
+Copy `id` của dịch vụ vừa tạo vào biến `service_id` dưới đây. Khi chạy lệnh PATCH, dịch vụ biến mất khỏi phần công khai. HTTP 404 ở lệnh cuối là kết quả mong đợi.
+
+```bash
+service_id='THAY-BANG-ID-VUA-TAO'
+curl -sS -b "$jar" "${headers[@]}" -X PATCH "$base/admin/services/$service_id" -d '{"active":false}'
+curl -i "$base/services/$service_id"
+```
+
+| Endpoint sau `/api/v1`                                      | Thao tác                                                                                                                                                                         |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET /services, GET /services/{id}, GET /services/{id}/staff | Tra cứu công khai. Dịch vụ đã ngừng hoặc ID không tồn tại trả 404 ở hai route theo ID.                                                                                           |
+| GET /admin/services, GET /admin/staff                       | Xem cả bản ghi đã ngừng, dùng cùng quy ước tìm kiếm và phân trang. Danh sách nhân viên admin có email, trạng thái và serviceIds.                                                 |
+| POST /admin/services, PATCH /admin/services/{id}            | Tạo hoặc sửa tên, mô tả, giá và thời lượng. PATCH nhận thêm `active`; gửi true để mở lại.                                                                                        |
+| POST /admin/staff                                           | JSON gồm email, password (12–128 ký tự), displayName và bio tùy chọn. Server tự gán STAFF.                                                                                       |
+| PATCH /admin/staff/{id}                                     | Sửa displayName, bio hoặc active. Trạng thái active dùng chung với tài khoản đăng nhập.                                                                                          |
+| PUT /admin/staff/{id}/services                              | JSON dạng `{"serviceIds":["UUID-dịch-vụ"]}`. Gửi toàn bộ danh sách mong muốn; mảng rỗng bỏ hết phân công, UUID trùng trả 400, UUID không tồn tại trả 404 và giữ bộ phân công cũ. |
+
+Khi xong, thu hồi phiên và dọn cookie tạm:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' -b "$jar" "${headers[@]}" -X POST "$base/auth/logout"
+rm -f -- "$jar"
+```
+
+Swagger tại http://localhost:4000/api/docs có nhóm `catalog` và `admin/catalog`. Dùng Git Bash như trên cho request ghi để gửi đúng cookie và Origin.

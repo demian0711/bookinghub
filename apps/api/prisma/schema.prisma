@@ -15,13 +15,16 @@ enum Role {
 }
 
 model User {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique @db.VarChar(254)
-  displayName  String    @db.VarChar(100)
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique @db.VarChar(254)
+  displayName  String        @db.VarChar(100)
   passwordHash String
-  role         Role      @default(CUSTOMER)
-  active       Boolean   @default(true)
+  role         Role          @default(CUSTOMER)
+  active       Boolean       @default(true)
   sessions     Session[]
+  staffProfile StaffProfile?
+
+  @@unique([id, role])
 }
 
 model Session {
@@ -33,4 +36,36 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model Service {
+  id              String         @id @default(uuid()) @db.Uuid
+  name            String         @db.VarChar(120)
+  description     String         @db.VarChar(1000)
+  priceVnd        Int
+  durationMinutes Int
+  active          Boolean        @default(true)
+  assignments     StaffService[]
+
+  @@index([active, name, id])
+}
+
+model StaffProfile {
+  userId      String         @id @db.Uuid
+  role        Role           @default(STAFF)
+  user        User           @relation(fields: [userId, role], references: [id, role], onDelete: Restrict, onUpdate: Restrict)
+  bio         String         @default("") @db.VarChar(1000)
+  assignments StaffService[]
+
+  @@unique([userId, role])
+}
+
+model StaffService {
+  staffId   String       @db.Uuid
+  serviceId String       @db.Uuid
+  staff     StaffProfile @relation(fields: [staffId], references: [userId], onDelete: Restrict)
+  service   Service      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@id([staffId, serviceId])
+  @@index([serviceId, staffId])
 }
