@@ -2,22 +2,22 @@
 
 ## Trách nhiệm
 
-| Thành phần | Trách nhiệm |
-| --- | --- |
-| Next.js App Router | React, TypeScript, Tailwind CSS và shadcn/ui cho tra cứu công khai và màn hình theo vai trò. Gọi REST API, hiển thị kết quả và phản hồi khi giờ vừa được đặt. |
-| NestJS | Điểm thực thi nghiệp vụ và truy cập database. Chia module theo xác thực, dịch vụ, nhân viên, lịch làm việc, lịch hẹn và dashboard khi cần. Controller nhận request, DTO validate đầu vào, service kiểm tra quyền và nghiệp vụ, truy cập PostgreSQL qua Prisma. Swagger mô tả hợp đồng REST. |
-| PostgreSQL | Lưu quan hệ, phân công, lịch làm và lịch hẹn cùng bản chụp giá, thời lượng. Duy trì toàn vẹn tham chiếu và bảo vệ điều kiện chống trùng giữa các giao dịch. Docker Compose cung cấp PostgreSQL local. |
+| Thành phần         | Trách nhiệm                                                                                                                                                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js App Router | React, TypeScript, Tailwind CSS và shadcn/ui cho tra cứu công khai và màn hình theo vai trò. Gọi REST API, hiển thị kết quả và phản hồi khi giờ vừa được đặt.                                                                                                                               |
+| NestJS             | Điểm thực thi nghiệp vụ và truy cập database. Chia module theo xác thực, dịch vụ, nhân viên, lịch làm việc, lịch hẹn và dashboard khi cần. Controller nhận request, DTO validate đầu vào, service kiểm tra quyền và nghiệp vụ, truy cập PostgreSQL qua Prisma. Swagger mô tả hợp đồng REST. |
+| PostgreSQL         | Lưu quan hệ, phân công, lịch làm và lịch hẹn cùng bản chụp giá, thời lượng. Duy trì toàn vẹn tham chiếu và bảo vệ điều kiện chống trùng giữa các giao dịch. Docker Compose cung cấp PostgreSQL local.                                                                                       |
 
 Web lấy giờ trống và kết quả xử lý từ API. Không truy cập database từ Next.js hoặc nhân đôi thuật toán đặt lịch ở frontend. Chưa có nhu cầu tạo repository pattern.
 
 ## Cấu trúc dự kiến
 
-| Đường dẫn | Mục đích |
-| --- | --- |
-| `apps/web/` | Ứng dụng Next.js trong pnpm workspace. |
-| `apps/api/` | Ứng dụng NestJS, module nghiệp vụ, Prisma schema và migration. |
-| `docs/` | Tài liệu sản phẩm, quy tắc và kế hoạch triển khai. |
-| Gốc repository | Cấu hình workspace và Compose sẽ được thêm ở milestone khởi tạo. |
+| Đường dẫn      | Mục đích                                                       |
+| -------------- | -------------------------------------------------------------- |
+| `apps/web/`    | Ứng dụng Next.js trong pnpm workspace.                         |
+| `apps/api/`    | Ứng dụng NestJS, module nghiệp vụ, Prisma schema và migration. |
+| `docs/`        | Tài liệu sản phẩm, quy tắc và kế hoạch triển khai.             |
+| Gốc repository | Cấu hình workspace và Compose dùng chung cho M1.               |
 
 ## Luồng ghi lịch
 
@@ -27,7 +27,8 @@ Ca định kỳ biểu diễn theo ngày trong tuần và giờ địa phương 
 
 ## Quyết định cần xác minh
 
-- Kiểm tra phiên bản ổn định, tương thích của runtime, pnpm, framework, Prisma và PostgreSQL ở lượt khởi tạo.
+Bộ phiên bản M1 đã được chọn và ghi trong [hướng dẫn thiết lập](setup.md).
+
 - Chọn cách xác thực và quản lý phiên phù hợp với REST API và Next.js.
 - Thử nghiệm ràng buộc loại trừ theo nhân viên và khoảng thời gian nửa mở cho hai trạng thái giữ chỗ. Xác minh migration với Prisma, cách ánh xạ lỗi và kết quả khi hai giao dịch ghi đồng thời trên PostgreSQL thật.
 - Xác minh cách đồng bộ thao tác đổi cấu hình ca/nghỉ với thao tác đặt lịch. Chốt cách admin giải quyết các lịch bị ảnh hưởng trước khi áp dụng thay đổi.

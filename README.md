@@ -1,6 +1,6 @@
 # BookingHub
 
-BookingHub là dự án portfolio ứng tuyển Fullstack Intern, thiết kế cho một salon tóc có một chi nhánh. **Dự án đang ở giai đoạn thiết kế, chưa có ứng dụng chạy được.**
+BookingHub là dự án portfolio ứng tuyển Fullstack Intern, thiết kế cho một salon tóc có một chi nhánh. **M1 đã có web và API chạy local.** Trang khởi đầu kiểm tra kết nối API và PostgreSQL. Xem [hướng dẫn khởi động trên Windows](docs/setup.md) và [tình trạng kiểm chứng M1](docs/implementation-plan.md).
 
 ## Phạm vi dự kiến
 
@@ -10,7 +10,7 @@ BookingHub là dự án portfolio ứng tuyển Fullstack Intern, thiết kế c
 
 ## Công nghệ dự kiến
 
-Monorepo dùng pnpm workspace. Web dùng Next.js App Router, React, TypeScript, Tailwind CSS và shadcn/ui. API dùng NestJS, REST, Prisma, PostgreSQL và Swagger. PostgreSQL cục bộ chạy bằng Docker Compose. Dự kiến dùng Jest cho backend và Playwright cho E2E trình duyệt. Phiên bản sẽ được xác minh ở bước khởi tạo.
+Monorepo dùng pnpm workspace. Web dùng Next.js App Router, React, TypeScript, Tailwind CSS và shadcn/ui. API dùng NestJS, REST, Prisma, PostgreSQL và Swagger. PostgreSQL cục bộ chạy bằng Docker Compose. Dự kiến dùng Jest cho backend và Playwright cho E2E trình duyệt. Bộ phiên bản M1 được ghi trong hướng dẫn khởi động.
 
 ## Lộ trình
 
