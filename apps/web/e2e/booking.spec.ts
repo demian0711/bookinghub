@@ -37,8 +37,17 @@ test('khôi phục sau đăng nhập, tranh cùng giờ, xem và hủy lịch th
   await expect(
     page.getByRole('heading', { name: 'Xác nhận lịch hẹn' }),
   ).toBeVisible();
+  const cookie = (await page.context().cookies()).find(
+    (c) => c.name === 'bookinghub_session',
+  );
+  expect(cookie).toMatchObject({
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Lax',
+    path: '/api/v1',
+  });
   await expect(page.locator('.summary')).toContainText('09:00');
-  const rival = await browser.newPage({ baseURL });
+  const rival = await browser.newPage({ baseURL, ignoreHTTPSErrors: true });
   try {
     await rival.goto('/dang-nhap');
     await login(rival, 'lan');
@@ -107,7 +116,7 @@ test('đổi nhân viên hoặc ngày xóa giờ cũ và giờ mất trong lúc 
   await expect(page.getByRole('button', { name: 'Tiếp tục' })).toBeDisabled();
   await choose(page, '10:30');
   await page.getByRole('link', { name: 'Đăng nhập để xác nhận' }).click();
-  const rival = await browser.newPage({ baseURL });
+  const rival = await browser.newPage({ baseURL, ignoreHTTPSErrors: true });
   try {
     await rival.goto('/dang-nhap');
     await login(rival, 'lan');

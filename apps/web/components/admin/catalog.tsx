@@ -29,7 +29,7 @@ function ServiceForm({ row, done }: { row?: Service; done: () => void }) {
   }
   return (
     <>
-      <form className="admin-form" onSubmit={submit}>
+      <form method="post" className="admin-form" onSubmit={submit}>
         <label>
           Tên dịch vụ
           <input
@@ -138,7 +138,7 @@ function StaffForm({ row, done }: { row?: Employee; done: () => void }) {
   }
   return (
     <>
-      <form className="admin-form" onSubmit={submit}>
+      <form method="post" className="admin-form" onSubmit={submit}>
         <label>
           Tên nhân viên
           <input

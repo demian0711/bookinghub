@@ -12,6 +12,7 @@
     "lint": "eslint . --max-warnings=0",
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck",
+    "test:unit": "pnpm --filter @bookinghub/api test:unit",
     "test": "pnpm --filter @bookinghub/api test",
     "build": "pnpm -r build",
     "test:e2e": "pnpm --filter @bookinghub/api build && pnpm --dir apps/api exec node test/run-integration.cjs --e2e",

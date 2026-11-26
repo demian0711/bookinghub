@@ -1,28 +1,9 @@
 const { beforeEach, afterEach, expect, test } = require('@jest/globals');
-const { Module, Controller, Get } = require('@nestjs/common');
 const { createHash, randomBytes } = require('node:crypto');
 const { URL } = require('node:url');
 const { execFileSync, spawnSync } = require('node:child_process');
 const { createApplication } = require('../dist/application');
-const { AppModule } = require('../dist/app.module');
 const { PrismaService } = require('../dist/prisma/prisma.service');
-const { Roles } = require('../dist/auth/guards');
-
-// Endpoint dành riêng cho kiểm thử để chạy guard thật trước khi có nghiệp vụ admin ở milestone sau.
-class AdminProbe {
-  read() {
-    return { ok: true };
-  }
-}
-Controller('admin-test')(AdminProbe);
-Roles('ADMIN')(AdminProbe);
-Get()(
-  AdminProbe.prototype,
-  'read',
-  Object.getOwnPropertyDescriptor(AdminProbe.prototype, 'read'),
-);
-class IntegrationModule {}
-Module({ imports: [AppModule], controllers: [AdminProbe] })(IntegrationModule);
 
 let app, db, base;
 let credentials, signup;
@@ -68,7 +49,7 @@ beforeEach(async () => {
     password: randomBytes(20).toString('hex'),
   };
   signup = { ...credentials, displayName: 'Member' };
-  app = await createApplication(IntegrationModule);
+  app = await createApplication();
   await app.listen(0, '127.0.0.1');
   db = app.get(PrismaService);
   base = (await app.getUrl()) + '/api/v1';
@@ -138,7 +119,9 @@ test('sai mật khẩu, email chưa đăng ký và JSON lỗi đều có phản 
 test('guard trả 401, 403 và dùng quyền hiện tại trong database', async () => {
   expect((await post('/auth/register', signup)).status).toBe(201);
   expect((await get('/auth/me')).status).toBe(401);
-  expect((await get('/admin-test')).status).toBe(401);
+  const denied = await get('/admin/services');
+  expect(denied.status).toBe(401);
+  expect(denied.headers.get('cache-control')).toContain('no-store');
   const cookie = await login();
   const profile = await get('/auth/me', cookie);
   expect(profile.status).toBe(200);
@@ -148,15 +131,15 @@ test('guard trả 401, 403 và dùng quyền hiện tại trong database', async
     'id',
     'role',
   ]);
-  expect((await get('/admin-test', cookie)).status).toBe(403);
+  expect((await get('/admin/services', cookie)).status).toBe(403);
   for (const role of ['STAFF', 'ADMIN', 'CUSTOMER']) {
     await db.user.update({
       where: { email: credentials.email },
       data: { role },
     });
-    expect((await get('/admin-test', cookie)).status).toBe(
-      role === 'ADMIN' ? 200 : 403,
-    );
+    const response = await get('/admin/services', cookie);
+    expect(response.headers.get('cache-control')).toContain('no-store');
+    expect(response.status).toBe(role === 'ADMIN' ? 200 : 403);
   }
 });
 test('logout chỉ thu hồi phiên hiện tại, chặn dùng lại cookie cũ', async () => {

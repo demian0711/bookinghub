@@ -13,6 +13,8 @@ M0 đã hoàn thành. M1 đã triển khai và chạy thử trên Windows với 
 | M6 · Xử lý lịch hẹn             | M5               | API xem lịch và thao tác theo bảng trạng thái                                                   | Kiểm tra quyền sở hữu/phân công, lý do hủy, mốc hai giờ, thời điểm hoàn thành và NO_SHOW, chuyển đổi từ trạng thái kết thúc.                                                                                                  |
 | M7 · Web cho khách              | M6               | Xem dịch vụ, chọn giờ, đăng nhập, đặt, xem và hủy lịch                                          | Playwright chạy luồng qua API thật, bao gồm phản hồi khi giờ vừa hết chỗ.                                                                                                                                                     |
 | M8 · Web vận hành               | M6, M7           | Màn hình staff/admin và dashboard cơ bản                                                        | Kiểm tra staff chỉ xử lý lịch được giao, admin quản lý toàn salon. Đối chiếu số liệu dashboard với lịch thực và kiểm tra lại luồng khách sau thay đổi cấu hình.                                                               |
+| M9 · Kiểm tra trước phát hành   | M8               | Sửa lỗi, bổ sung regression test, checklist và báo cáo                                          | Chạy lint, format, typecheck, unit, smoke, integration, E2E HTTPS và build. Ghi lại kết quả, phạm vi và giới hạn.                                                                                                             |
+| M10 · Phát hành                 | M9               | Chuẩn bị môi trường đích, bản sao lưu và kế hoạch quay lui                                      | Xác minh cấu hình, chạy CI và smoke trên môi trường đích trước khi công bố.                                                                                                                                                   |
 
 Dashboard M8B dùng khoảng ngày bắt đầu hẹn tại salon, tối đa 90 ngày. Xem định nghĩa và cách đối chiếu trong [hướng dẫn nghiệm thu M8B](setup.md#m8b--nghiệm-thu-khu-vực-quản-trị).
 
@@ -35,3 +37,7 @@ Ba kịch bản Playwright đã đạt trên Chrome với Next.js, NestJS và Po
 ### M8B · Khu vực quản trị
 
 Đã triển khai danh mục, nhân viên, phân công, lịch làm việc, lịch toàn salon và dashboard tại `/admin`. PostgreSQL dùng chỉ mục giờ bắt đầu và ID cho truy vấn khoảng ngày. Đã kiểm chứng 41 bài tích hợp và 10 kịch bản Chrome trên PostgreSQL riêng. Ba kịch bản mới bao phủ phân quyền, đối chiếu dashboard và luồng từ thay cấu hình đến khách đặt lịch, phản hồi xung đột và xử lý lịch.
+
+### M9 · Kết quả kiểm tra trước phát hành
+
+Các kiểm tra local đã đạt, gồm 3 unit, 2 smoke, 41 integration và 12 E2E HTTPS production. Xem [báo cáo kiểm tra](test-report.md) và [checklist phát hành](release-checklist.md) để biết phần xác minh còn lại của M10.

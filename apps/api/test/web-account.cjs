@@ -1,9 +1,16 @@
 const assert = require('node:assert/strict');
-const { mkdtempSync, cpSync, mkdirSync, rmSync } = require('node:fs');
+const {
+  mkdtempSync,
+  cpSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+} = require('node:fs');
 const { join, resolve } = require('node:path');
 const { createRequire } = require('node:module');
 const { execFileSync } = require('node:child_process');
-const { createServer } = require('node:http');
+const http = require('node:http');
+const https = require('node:https');
 const { randomUUID } = require('node:crypto');
 const { URL } = require('node:url');
 const { once } = require('node:events');
@@ -20,12 +27,44 @@ async function run() {
   const tempRoot = join(webDir, '.next');
   mkdirSync(tempRoot, { recursive: true });
   const project = mkdtempSync(join(tempRoot, 'account-test-'));
-  const server = createServer();
+  const production = process.argv.includes('--e2e');
+  let server;
   let api, web, browser;
   try {
+    if (production) {
+      const key = join(project, 'loopback.key');
+      const cert = join(project, 'loopback.crt');
+      execFileSync(
+        'openssl',
+        [
+          'req',
+          '-x509',
+          '-newkey',
+          'rsa:2048',
+          '-nodes',
+          '-days',
+          '1',
+          '-subj',
+          '/CN=127.0.0.1',
+          '-addext',
+          'subjectAltName=IP:127.0.0.1',
+          '-keyout',
+          key,
+          '-out',
+          cert,
+        ],
+        { stdio: 'ignore' },
+      );
+      server = https.createServer({
+        key: readFileSync(key),
+        cert: readFileSync(cert),
+      });
+    } else server = http.createServer();
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
-    const origin = 'http://127.0.0.1:' + server.address().port;
+    const origin =
+      (production ? 'https' : 'http') + '://127.0.0.1:' + server.address().port;
+    if (production) process.env.NODE_ENV = 'production';
     process.env.WEB_ORIGIN = origin;
     api = await createApplication();
     await api.listen(0, '127.0.0.1');
@@ -57,7 +96,14 @@ async function run() {
     web = webRequire('next')({ dir: project, dev: false });
     await web.prepare();
     server.on('request', web.getRequestHandler());
-    if (process.argv.includes('--e2e')) {
+    if (production) {
+      assert.equal(
+        (await fetch(process.env.API_ORIGIN + '/api/docs')).status,
+        404,
+      );
+      const ready = await fetch(process.env.API_ORIGIN + '/api/v1/ready');
+      assert.equal(ready.status, 200);
+      process.stdout.write('API production: readiness 200 và Swagger 404.\n');
       const { runBookingTests } = require('./run-booking-e2e.cjs');
       await runBookingTests({
         db: api.get(PrismaService),
@@ -69,7 +115,10 @@ async function run() {
       return;
     }
     const { chromium } = webRequire('playwright');
-    browser = await chromium.launch({ channel: 'chrome', headless: true });
+    browser = await chromium.launch({
+      channel: process.env.CI ? undefined : 'chrome',
+      headless: true,
+    });
     const page = await browser.newPage({
       viewport: { width: 390, height: 844 },
     });
@@ -166,8 +215,10 @@ async function run() {
     );
   } finally {
     if (browser) await browser.close();
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
+    if (server) {
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    }
     if (web) await web.close();
     if (api) await api.close();
     rmSync(project, { recursive: true, force: true });

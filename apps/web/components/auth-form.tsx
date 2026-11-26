@@ -68,6 +68,7 @@ export function AuthForm({
         <p role="status">Đã tạo tài khoản. Hãy đăng nhập để tiếp tục.</p>
       )}
       <form
+        method="post"
         onSubmit={submit}
         onInvalid={(event) => {
           const input = event.target;

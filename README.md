@@ -1,16 +1,16 @@
 # BookingHub
 
-BookingHub là dự án portfolio ứng tuyển Fullstack Intern, thiết kế cho một salon tóc có một chi nhánh. **M5A đã có API đặt lịch và giờ trống có xét các lịch đang giữ chỗ.** Danh mục và phân công dùng dữ liệu M3; quản trị được bảo vệ bằng session của M2. Hướng dẫn thử bằng HTTP client nằm trong tài liệu thiết lập. Trang khởi đầu kiểm tra kết nối API và PostgreSQL. Xem [hướng dẫn khởi động trên Windows](docs/setup.md) và [tình trạng kiểm chứng M1](docs/implementation-plan.md).
+BookingHub là dự án portfolio Fullstack cho một salon tóc có một chi nhánh. Web hỗ trợ đặt và quản lý lịch cho khách, xử lý lịch được phân công cho nhân viên và quản lý salon cho quản trị viên. Xem [hướng dẫn khởi động trên Windows](docs/setup.md), [checklist phát hành](docs/release-checklist.md) và [báo cáo kiểm tra](docs/test-report.md).
 
-## Phạm vi dự kiến
+## Phạm vi
 
 - Khách có thể xem dịch vụ, nhân viên và giờ trống trước khi đăng nhập. Sau khi đăng nhập, khách có thể đặt, xem và hủy lịch của mình theo chính sách.
 - Nhân viên xử lý lịch được phân công. Quản trị viên quản lý dịch vụ, nhân viên, ca làm, khoảng nghỉ, ngày nghỉ, toàn bộ lịch hẹn và dashboard cơ bản.
 - Khi cần đổi lịch, khách hủy lịch cũ theo chính sách rồi đặt lịch mới. Chi tiết phạm vi và tiêu chí nghiệm thu nằm trong [yêu cầu sản phẩm](docs/product-requirements.md).
 
-## Công nghệ dự kiến
+## Công nghệ
 
-Monorepo dùng pnpm workspace. Web dùng Next.js App Router, React, TypeScript, Tailwind CSS và shadcn/ui. API dùng NestJS, REST, Prisma, PostgreSQL và Swagger. PostgreSQL cục bộ chạy bằng Docker Compose. Dự kiến dùng Jest cho backend và Playwright cho E2E trình duyệt. Bộ phiên bản M1 được ghi trong hướng dẫn khởi động.
+Monorepo dùng pnpm workspace. Web dùng Next.js App Router, React, TypeScript, Tailwind CSS và shadcn/ui. API dùng NestJS, REST, Prisma, PostgreSQL và Swagger. PostgreSQL cục bộ chạy bằng Docker Compose. Jest kiểm tra backend và Playwright kiểm tra xuyên suốt trên trình duyệt. Bộ phiên bản M1 được ghi trong hướng dẫn khởi động.
 
 ## Lộ trình
 

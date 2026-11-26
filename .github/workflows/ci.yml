@@ -20,6 +20,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
+      - run: pnpm test:unit
       - name: Khởi động PostgreSQL cho smoke test
         run: |
           cp .env.example .env
@@ -28,10 +29,12 @@ jobs:
       - run: pnpm db:migrate
       - run: pnpm test
       - run: pnpm test:integration
+      - run: pnpm --filter @bookinghub/web exec playwright install --with-deps chromium
       - run: pnpm test:web
-      - run: pnpm test:e2e
+      - id: e2e
+        run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() && steps.e2e.outcome == 'failure'
         with:
           name: bookinghub-e2e
           path: |

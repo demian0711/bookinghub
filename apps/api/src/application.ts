@@ -12,13 +12,11 @@ import type { Request, Response, NextFunction } from 'express';
 export async function createApplication(rootModule: Type = AppModule) {
   const { mode } = readEnvironment();
   const app = await NestFactory.create(rootModule);
-  app.use(
-    '/api/v1/auth',
-    (_req: Request, res: Response, next: NextFunction) => {
-      res.setHeader('Cache-Control', 'no-store');
-      next();
-    },
-  );
+  app.use('/api/v1', (_req: Request, res: Response, next: NextFunction) => {
+    // Áp dụng cả cho phản hồi lỗi: quyền và giờ trống có thể thay đổi theo từng yêu cầu.
+    res.setHeader('Cache-Control', 'private, no-store');
+    next();
+  });
   app.useGlobalFilters(new ApiErrorFilter());
   app.useGlobalPipes(
     new ValidationPipe({
