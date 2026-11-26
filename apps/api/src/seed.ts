@@ -43,6 +43,24 @@ async function seed() {
         create: { userId: user.id },
         update: {},
       });
+      // Một thứ đã cấu hình (kể cả để trống) được giữ nguyên khi chạy lại seed.
+      for (const weekday of [1, 2, 3, 4, 5, 6]) {
+        await tx.workDay.upsert({
+          where: { staffId_weekday: { staffId: user.id, weekday } },
+          create: {
+            staffId: user.id,
+            weekday,
+            shifts: {
+              create: {
+                startMinute: 540,
+                endMinute: 1020,
+                breaks: { create: { startMinute: 720, endMinute: 780 } },
+              },
+            },
+          },
+          update: {},
+        });
+      }
       // Chỉ gán khi tạo dịch vụ mẫu lần đầu để seed lại không phục hồi phân công admin đã bỏ.
       const id = 'bedc0c0a-d5a3-483a-adcb-772ffc926c88';
       const inserted = await tx.service.createMany({

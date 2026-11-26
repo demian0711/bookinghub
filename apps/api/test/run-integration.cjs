@@ -55,6 +55,7 @@ async function run() {
     const env = {
       ...process.env,
       NODE_ENV: 'test',
+      TZ: 'America/Los_Angeles',
       WEB_ORIGIN: 'http://localhost:3000',
       DATABASE_URL: `postgresql://postgres:${password}@${binding}/bookinghub_integration`,
     };
@@ -73,6 +74,7 @@ async function run() {
         '--runTestsByPath',
         'test/auth.test.cjs',
         'test/catalog.test.cjs',
+        'test/availability.test.cjs',
       ],
       options,
     );

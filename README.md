@@ -1,6 +1,6 @@
 # BookingHub
 
-BookingHub là dự án portfolio ứng tuyển Fullstack Intern, thiết kế cho một salon tóc có một chi nhánh. **M3 đã có API danh mục dịch vụ, nhân viên và phân công, dùng xác thực session PostgreSQL của M2.** Hướng dẫn thử bằng HTTP client nằm trong tài liệu thiết lập. Trang khởi đầu kiểm tra kết nối API và PostgreSQL. Xem [hướng dẫn khởi động trên Windows](docs/setup.md) và [tình trạng kiểm chứng M1](docs/implementation-plan.md).
+BookingHub là dự án portfolio ứng tuyển Fullstack Intern, thiết kế cho một salon tóc có một chi nhánh. **M4 đã có API giờ trống theo ca làm, khoảng nghỉ và ngày nghỉ của nhân viên.** Danh mục và phân công dùng dữ liệu M3; quản trị được bảo vệ bằng session của M2. Hướng dẫn thử bằng HTTP client nằm trong tài liệu thiết lập. Trang khởi đầu kiểm tra kết nối API và PostgreSQL. Xem [hướng dẫn khởi động trên Windows](docs/setup.md) và [tình trạng kiểm chứng M1](docs/implementation-plan.md).
 
 ## Phạm vi dự kiến
 
