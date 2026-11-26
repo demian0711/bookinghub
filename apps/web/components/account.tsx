@@ -89,6 +89,13 @@ export function Account() {
               <dd>{user.email}</dd>
             </div>
           </dl>
+          {user.role === 'ADMIN' && (
+            <p>
+              <Link className="text-link" href="/admin">
+                Quản trị salon →
+              </Link>
+            </p>
+          )}
           {user.role === 'STAFF' && (
             <p>
               <Link className="text-link" href="/staff">

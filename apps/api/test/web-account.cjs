@@ -61,6 +61,7 @@ async function run() {
       const { runBookingTests } = require('./run-booking-e2e.cjs');
       await runBookingTests({
         db: api.get(PrismaService),
+        auth: api.get(require('../dist/auth/auth.service').AuthService),
         origin,
         webDir,
         webRequire,

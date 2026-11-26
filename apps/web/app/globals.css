@@ -463,3 +463,85 @@ button:disabled {
 .staff-area .detail {
   overflow-wrap: anywhere;
 }
+
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+  padding-block: 0.5rem 1rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.admin-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.admin-nav a:hover {
+  text-decoration: underline;
+}
+.staff-area details {
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-block: 0.75rem;
+  background: #fffdf8;
+}
+.staff-area summary {
+  cursor: pointer;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.admin-form {
+  display: grid;
+  gap: 0.8rem;
+  margin-block: 1rem;
+}
+.admin-form label {
+  display: block;
+  font-weight: 600;
+}
+.admin-form input:not([type='checkbox']),
+.admin-form textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  min-height: 44px;
+  border: 1px solid var(--color-input);
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+  background: white;
+}
+.admin-form button {
+  justify-self: start;
+}
+.admin-form fieldset {
+  min-width: 0;
+  margin-bottom: 0.7rem;
+}
+.admin-hours,
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+}
+.metric-grid {
+  margin-block: 1rem;
+}
+.metric-grid div {
+  padding: 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  background: #fffdf8;
+}
+.metric-grid dd {
+  font-size: 1.6rem;
+}
+.staff-area h2 {
+  margin-top: 1.5rem;
+}
+.check-row {
+  display: block;
+  padding-block: 0.45rem;
+}
