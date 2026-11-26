@@ -23,7 +23,9 @@ async function runBookingTests({ db, origin, webDir, webRequire }) {
           create: {
             displayName,
             role: 'STAFF',
-            email: randomUUID() + '@example.test',
+            email:
+              (displayName === 'An' ? 'staff-an' : 'staff-binh') +
+              '@example.test',
             passwordHash,
           },
         },
@@ -73,6 +75,57 @@ async function runBookingTests({ db, origin, webDir, webRequire }) {
       },
     });
   }
+  const guest = await db.user.create({
+    data: {
+      email: 'staff-guest@example.test',
+      displayName: 'Khách thử vận hành',
+      passwordHash,
+      role: 'CUSTOMER',
+    },
+  });
+  const staffAn = await db.user.findUniqueOrThrow({
+    where: { email: 'staff-an@example.test' },
+  });
+  const staffBinh = await db.user.findUniqueOrThrow({
+    where: { email: 'staff-binh@example.test' },
+  });
+  const staffDay = day.add({ days: 7 });
+  const opening = staffDay
+    .toZonedDateTime({ timeZone: 'Asia/Ho_Chi_Minh', plainTime: '09:00' })
+    .toInstant();
+  async function visit(staffId, label, start, status = 'PENDING') {
+    const row = await db.appointment.create({
+      data: {
+        customerId: guest.id,
+        staffId,
+        serviceId: service.id,
+        serviceName: label,
+        priceVnd: 180000,
+        durationMinutes: 30,
+        status,
+        startAt: new Date(start.epochMilliseconds),
+        endAt: new Date(start.add({ minutes: 30 }).epochMilliseconds),
+      },
+    });
+    return row.id;
+  }
+  const staffCases = {
+    day: staffDay.toString(),
+    future: await visit(staffAn.id, 'Cắt tóc buổi sáng', opening),
+    foreign: await visit(staffBinh.id, 'Lịch riêng của Bình', opening),
+    past: await visit(
+      staffAn.id,
+      'Gội đầu buổi sáng',
+      opening.subtract({ hours: 24 * 35 }),
+      'CONFIRMED',
+    ),
+    ongoing: await visit(
+      staffAn.id,
+      'Tạo kiểu trong ca',
+      Temporal.Now.instant().subtract({ minutes: 5 }),
+      'CONFIRMED',
+    ),
+  };
   const child = spawn(
     process.execPath,
     [
@@ -85,6 +138,7 @@ async function runBookingTests({ db, origin, webDir, webRequire }) {
       stdio: 'inherit',
       env: {
         ...process.env,
+        E2E_STAFF_CASES: JSON.stringify(staffCases),
         E2E_ORIGIN: origin,
         E2E_DAY: day.toString(),
         E2E_PASSWORD: password,
