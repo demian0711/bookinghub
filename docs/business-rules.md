@@ -12,23 +12,23 @@ PostgreSQL phải bảo vệ điều kiện chống trùng khi các giao dịch 
 
 ## Chuyển trạng thái
 
-| Từ | Sang | Người được phép và điều kiện |
-| --- | --- | --- |
-| PENDING | CONFIRMED | STAFF được phân công hoặc ADMIN. |
+| Từ                     | Sang      | Người được phép và điều kiện                                                                      |
+| ---------------------- | --------- | ------------------------------------------------------------------------------------------------- |
+| PENDING                | CONFIRMED | STAFF được phân công hoặc ADMIN.                                                                  |
 | PENDING hoặc CONFIRMED | CANCELLED | CUSTOMER sở hữu lịch khi còn ít nhất hai giờ. STAFF được phân công hoặc ADMIN phải ghi lý do hủy. |
-| CONFIRMED | COMPLETED | STAFF được phân công hoặc ADMIN, khi thời điểm hiện tại đã đến hoặc qua giờ kết thúc. |
-| CONFIRMED | NO_SHOW | STAFF được phân công hoặc ADMIN, khi thời điểm hiện tại đã đến hoặc qua giờ bắt đầu. |
+| CONFIRMED              | COMPLETED | STAFF được phân công hoặc ADMIN, khi thời điểm hiện tại đã đến hoặc qua giờ kết thúc.             |
+| CONFIRMED              | NO_SHOW   | STAFF được phân công hoặc ADMIN, khi thời điểm hiện tại đã đến hoặc qua giờ bắt đầu.              |
 
 NestJS kiểm tra danh tính, vai trò, phạm vi lịch, trạng thái nguồn và thời gian theo đồng hồ backend. Chỉ cho phép các chuyển đổi trong bảng. CANCELLED, COMPLETED và NO_SHOW kết thúc vòng đời. Khi hai thao tác cạnh tranh, điều kiện trạng thái nguồn phải còn đúng tại thời điểm cập nhật.
 
 ## Trường hợp biên để kiểm thử
 
-| Tình huống | Kết quả mong đợi |
-| --- | --- |
-| Lịch 09:00–09:45, lịch tiếp theo bắt đầu 09:45 | Cho phép nếu các điều kiện khác đạt. Bắt đầu 09:30 với cùng nhân viên sẽ bị chặn khi lịch trước đang giữ chỗ. |
-| Dịch vụ dài 45 phút bắt đầu 11:30, ca kết thúc 12:00 | Từ chối dù có ca kế tiếp bắt đầu ngay lúc 12:00. |
-| Khoảng nghỉ 12:00–13:00 | Có thể kết thúc đúng 12:00 hoặc bắt đầu đúng 13:00. Lịch kéo dài qua khoảng nghỉ bị từ chối. |
-| Khách hủy lịch 14:00 | Đúng 12:00 được hủy, sau 12:00 bị từ chối. |
-| Hai khách cùng đặt một nhân viên vào hai khoảng giao nhau | Tối đa một giao dịch thành công. Hai nhân viên khác nhau có thể nhận lịch cùng giờ nếu từng người đủ điều kiện. |
-| Lịch CONFIRMED bắt đầu 10:00, kết thúc 10:45 | Sớm nhất ghi NO_SHOW lúc 10:00 hoặc COMPLETED lúc 10:45. |
-| Admin rút ngắn ca, thêm khoảng nghỉ hoặc ngày nghỉ | Phát hiện các lịch giữ chỗ bị ảnh hưởng và báo cho admin. Chỉ áp dụng cấu hình bảo toàn lịch hiện hữu, không tự hủy hay dời lịch. |
+| Tình huống                                                | Kết quả mong đợi                                                                                                                  |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Lịch 09:00–09:45, lịch tiếp theo bắt đầu 09:45            | Cho phép nếu các điều kiện khác đạt. Bắt đầu 09:30 với cùng nhân viên sẽ bị chặn khi lịch trước đang giữ chỗ.                     |
+| Dịch vụ dài 45 phút bắt đầu 11:30, ca kết thúc 12:00      | Từ chối dù có ca kế tiếp bắt đầu ngay lúc 12:00.                                                                                  |
+| Khoảng nghỉ 12:00–13:00                                   | Có thể kết thúc đúng 12:00 hoặc bắt đầu đúng 13:00. Lịch kéo dài qua khoảng nghỉ bị từ chối.                                      |
+| Khách hủy lịch 14:00                                      | Đúng 12:00 được hủy, sau 12:00 bị từ chối.                                                                                        |
+| Hai khách cùng đặt một nhân viên vào hai khoảng giao nhau | Tối đa một giao dịch thành công. Hai nhân viên khác nhau có thể nhận lịch cùng giờ nếu từng người đủ điều kiện.                   |
+| Lịch CONFIRMED bắt đầu 10:00, kết thúc 10:45              | Sớm nhất ghi NO_SHOW lúc 10:00 hoặc COMPLETED lúc 10:45.                                                                          |
+| Admin rút ngắn ca, thêm khoảng nghỉ hoặc ngày nghỉ        | Phát hiện các lịch giữ chỗ bị ảnh hưởng và báo cho admin. Chỉ áp dụng cấu hình bảo toàn lịch hiện hữu, không tự hủy hay dời lịch. |
