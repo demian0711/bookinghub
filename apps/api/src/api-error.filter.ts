@@ -35,7 +35,11 @@ export class ApiErrorFilter implements ExceptionFilter {
             ? error.message
             : (messages[status] ?? 'Không thể xử lý yêu cầu.'),
         ...(error instanceof BookingConflict
-          ? { code: error.code, appointmentIds: error.appointmentIds }
+          ? {
+              code: error.code,
+              appointmentIds: error.affectedAppointments?.map((a) => a.id),
+              affectedAppointments: error.affectedAppointments,
+            }
           : {}),
       });
   }

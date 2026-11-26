@@ -246,3 +246,22 @@ curl -fsS "$availability"
 Lần đầu mong đợi **201** và biên nhận có id, customerId, staffId, serviceId, startAt/endAt, serviceName, priceVnd, durationMinutes và status=PENDING. Lần sau trả **409 APPOINTMENT_SLOT_TAKEN**. Trong kết quả availability mới, các suất giao với lịch vừa đặt biến mất, suất bắt đầu đúng endAt vẫn có thể chọn. Nếu khách khác đã lấy chỗ trước cả lần gửi đầu, tải lại availability và chọn suất khác.
 
 5. Kết thúc bằng `curl -sS -b "$jar" "${headers[@]}" -X POST "$base/auth/logout"` rồi `rm -f -- "$jar"`. M5A chỉ có API tạo; xem lại kết quả ngay trong response 201. API xem danh sách và xử lý trạng thái thuộc M6.
+
+## M5B · Kiểm tra bảo toàn lịch bằng Git Bash
+
+1. Mở Docker Desktop, chờ Docker chạy rồi mở Git Bash trong thư mục BookingHub. Chạy `pnpm test:integration`. Lệnh tạo PostgreSQL riêng, chạy migration, gửi request đặt lịch và sửa cấu hình cạnh tranh rồi kiểm tra các bản ghi đã lưu. Bạn có thể dùng cách này để kiểm tra toàn bộ M5B mà không cần tài khoản demo.
+2. Để thử riêng một ca, dùng phiên **admin** và biến `schedule`, `jar`, `headers` đã chuẩn bị ở mục M4. Chọn thứ của một lịch demo đang giữ chỗ (thứ Hai là 1). Ví dụ với thứ Hai, xem trước việc bỏ toàn bộ ca bằng lệnh dưới đây.
+
+```bash
+curl -i -b "$jar" "${headers[@]}" -X POST "$schedule/week/1/preview" -d '{"shifts":[]}'
+```
+
+3. Response 200 có mảng `affectedAppointments`. Nếu thấy lịch, thử lưu đúng đề xuất bằng lệnh bên dưới. Chỉ thử trên nhân viên demo vì nếu mảng rỗng và lúc ghi vẫn hợp lệ, lệnh sẽ xóa ca thứ Hai của nhân viên đó.
+
+```bash
+curl -i -b "$jar" "${headers[@]}" -X PUT "$schedule/week/1" -d '{"shifts":[]}'
+curl -sS -b "$jar" "$schedule"
+```
+
+4. Khi có xung đột, PUT trả **409** với mã `SCHEDULE_AFFECTS_APPOINTMENTS`. Đọc `startAt`, `endAt` (ISO có múi giờ), `status` và `id` trong từng mục. Giữ nguyên một ca bao trọn khoảng đó và đặt nghỉ bên ngoài khoảng của lịch trước khi gửi lại. GET cho thấy ca cũ vẫn còn. Preview rỗng vẫn có thể dẫn đến 409 nếu khách vừa đặt.
+5. Ngày nghỉ dùng `PUT $schedule/days-off/YYYY-MM-DD` để thêm, `PATCH` trên cùng đường dẫn với body `{"date":"YYYY-MM-DD"}` để chuyển sang ngày khác và `DELETE` để bỏ. Dùng cùng cookie và headers như lệnh PUT trên. Thành công trả **204**. PATCH trả **404** khi thiếu ngày nguồn hoặc **409 DAY_OFF_ALREADY_EXISTS** khi ngày đích đã nghỉ. Nếu đích có lịch giữ chỗ, lỗi 409 liệt kê lịch và ngày nguồn vẫn được giữ.

@@ -26,6 +26,15 @@ import {
 } from './day-slots';
 import { BookingConflict } from '../appointments/booking-conflict';
 import { lockStaff } from '../prisma/staff-lock';
+import type { Prisma } from '../generated/prisma/client';
+
+const heldFields = {
+  id: true,
+  startAt: true,
+  endAt: true,
+  status: true,
+} as const;
+
 function asHours(range: MinuteRange) {
   return {
     start: clockText(range.startMinute),
@@ -94,17 +103,41 @@ export class ScheduleService {
       daysOff: staff.daysOff.map((o) => o.date.toISOString().slice(0, 10)),
     };
   }
-  async replaceDay(staffId: string, weekdayText: string, body: DayScheduleDto) {
+  private async withStaffLock<T>(
+    staffId: string,
+    change: (tx: Prisma.TransactionClient) => Promise<T>,
+  ) {
+    return this.db.$transaction(
+      async (tx) => {
+        await lockStaff(tx, staffId);
+        return change(tx);
+      },
+      { isolationLevel: 'ReadCommitted' },
+    );
+  }
+
+  private weekProposal(weekdayText: string, body: DayScheduleDto) {
     if (!/^[1-7]$/.test(weekdayText)) throw new BadRequestException();
-    const weekday = Number(weekdayText);
-    const shifts = validatedShifts(body.shifts);
-    await this.db.$transaction(async (tx) => {
-      await lockStaff(tx, staffId);
-      const held = await tx.appointment.findMany({
-        where: { staffId, status: { in: holding }, endAt: { gt: new Date() } },
-        select: { id: true, startAt: true, durationMinutes: true },
-      });
-      const affected = held.filter((a) => {
+    return {
+      weekday: Number(weekdayText),
+      shifts: validatedShifts(body.shifts),
+    };
+  }
+
+  private async weekImpact(
+    tx: Prisma.TransactionClient,
+    staffId: string,
+    weekday: number,
+    shifts: ReturnType<typeof validatedShifts>,
+  ) {
+    const held = await tx.appointment.findMany({
+      where: { staffId, status: { in: holding }, endAt: { gt: new Date() } },
+      select: { ...heldFields, durationMinutes: true },
+      orderBy: { startAt: 'asc' },
+    });
+    // Thời lượng trên lịch là bản chụp khi đặt, kể cả khi dịch vụ đã đổi.
+    return held
+      .filter((a) => {
         const local = Temporal.Instant.fromEpochMilliseconds(
           a.startAt.getTime(),
         ).toZonedDateTimeISO(salonZone);
@@ -113,12 +146,28 @@ export class ScheduleService {
           local.dayOfWeek === weekday &&
           !shifts.some((s) => fitsShift(s, start, start + a.durationMinutes))
         );
-      });
+      })
+      .map(({ id, startAt, endAt, status }) => ({
+        id,
+        startAt,
+        endAt,
+        status,
+      }));
+  }
+
+  async previewDay(staffId: string, weekdayText: string, body: DayScheduleDto) {
+    const { weekday, shifts } = this.weekProposal(weekdayText, body);
+    return this.withStaffLock(staffId, async (tx) => ({
+      affectedAppointments: await this.weekImpact(tx, staffId, weekday, shifts),
+    }));
+  }
+
+  async replaceDay(staffId: string, weekdayText: string, body: DayScheduleDto) {
+    const { weekday, shifts } = this.weekProposal(weekdayText, body);
+    await this.withStaffLock(staffId, async (tx) => {
+      const affected = await this.weekImpact(tx, staffId, weekday, shifts);
       if (affected.length)
-        throw new BookingConflict(
-          'SCHEDULE_AFFECTS_APPOINTMENTS',
-          affected.map((a) => a.id),
-        );
+        throw new BookingConflict('SCHEDULE_AFFECTS_APPOINTMENTS', affected);
       await tx.workDay.upsert({
         where: { staffId_weekday: { staffId, weekday } },
         create: { staffId, weekday },
@@ -140,34 +189,59 @@ export class ScheduleService {
       if (breaks.length) await tx.shiftBreak.createMany({ data: breaks });
     });
   }
+  private async checkDayOff(
+    tx: Prisma.TransactionClient,
+    staffId: string,
+    day: Temporal.PlainDate,
+  ) {
+    const bounds = dayBounds(day);
+    const held = await tx.appointment.findMany({
+      where: {
+        staffId,
+        status: { in: holding },
+        startAt: { lt: bounds.end },
+        endAt: { gt: new Date(Math.max(Date.now(), bounds.start.getTime())) },
+      },
+      select: heldFields,
+      orderBy: { startAt: 'asc' },
+    });
+    if (held.length)
+      throw new BookingConflict('SCHEDULE_AFFECTS_APPOINTMENTS', held);
+  }
+
   async setDayOff(staffId: string, dateText: string, off: boolean) {
-    const date = dateColumn(salonDate(dateText));
-    await this.db.$transaction(async (tx) => {
-      await lockStaff(tx, staffId);
+    const day = salonDate(dateText);
+    const date = dateColumn(day);
+    await this.withStaffLock(staffId, async (tx) => {
       if (off) {
-        const bounds = dayBounds(salonDate(dateText));
-        const held = await tx.appointment.findMany({
-          where: {
-            staffId,
-            status: { in: holding },
-            startAt: { lt: bounds.end },
-            endAt: {
-              gt: new Date(Math.max(Date.now(), bounds.start.getTime())),
-            },
-          },
-          select: { id: true },
-        });
-        if (held.length)
-          throw new BookingConflict(
-            'SCHEDULE_AFFECTS_APPOINTMENTS',
-            held.map((a) => a.id),
-          );
+        await this.checkDayOff(tx, staffId, day);
         await tx.dayOff.upsert({
           where: { staffId_date: { staffId, date } },
           create: { staffId, date },
           update: {},
         });
       } else await tx.dayOff.deleteMany({ where: { staffId, date } });
+    });
+  }
+
+  async moveDayOff(staffId: string, from: string, to: string) {
+    const where = {
+      staffId_date: { staffId, date: dateColumn(salonDate(from)) },
+    };
+    const day = salonDate(to);
+    const date = dateColumn(day);
+    await this.withStaffLock(staffId, async (tx) => {
+      if (!(await tx.dayOff.findUnique({ where })))
+        throw new NotFoundException();
+      if (from === to) return;
+      if (
+        await tx.dayOff.findUnique({
+          where: { staffId_date: { staffId, date } },
+        })
+      )
+        throw new BookingConflict('DAY_OFF_ALREADY_EXISTS');
+      await this.checkDayOff(tx, staffId, day);
+      await tx.dayOff.update({ where, data: { date } });
     });
   }
 }

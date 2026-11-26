@@ -311,3 +311,179 @@ test('sửa ca hoặc ngày nghỉ và đặt lịch tuần tự hóa cùng nhâ
   expect(change.body.code).toBe('SCHEDULE_AFFECTS_APPOINTMENTS');
   expect((await preview()).body.slots.length).toBeGreaterThan(0);
 });
+
+function scheduleRequest(method, path, body) {
+  return http(
+    method,
+    '/admin/staff/' + staffId + '/schedule/' + path,
+    body,
+    admin.cookie,
+  );
+}
+const week = () => 'week/' + day.dayOfWeek;
+const shift = (start, end, breaks = []) => ({
+  shifts: [{ start, end, breaks }],
+});
+
+test('preview trước khi đặt không cấp quyền ghi đè; cả hai trạng thái giữ chỗ đều được bảo vệ', async () => {
+  const closed = { shifts: [] };
+  const inspect = () => scheduleRequest('POST', week() + '/preview', closed);
+  expect(await inspect()).toMatchObject({
+    status: 200,
+    body: { affectedAppointments: [] },
+  });
+  const first = (await book()).body;
+  const second = (await book('09:30')).body;
+  await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT set_config('bookinghub.actor_id',${admin.id},true)`;
+    await tx.appointment.update({
+      where: { id: second.id },
+      data: { status: 'CONFIRMED' },
+    });
+  });
+  const expected = [
+    {
+      id: first.id,
+      status: 'PENDING',
+      startAt: first.startAt,
+      endAt: first.endAt,
+    },
+    {
+      id: second.id,
+      status: 'CONFIRMED',
+      startAt: second.startAt,
+      endAt: second.endAt,
+    },
+  ];
+  expect((await inspect()).body.affectedAppointments).toEqual(expected);
+  const saved = await scheduleRequest('PUT', week(), closed);
+  expect(saved).toMatchObject({
+    status: 409,
+    body: {
+      code: 'SCHEDULE_AFFECTS_APPOINTMENTS',
+      affectedAppointments: expected,
+    },
+  });
+  expect(
+    (await scheduleRequest('PUT', week(), shift('09:00', '10:00'))).status,
+  ).toBe(204);
+  for (const proposal of [
+    shift('09:00', '09:45'),
+    shift('09:00', '10:00', [{ start: '09:45', end: '10:00' }]),
+  ]) {
+    const rejected = await scheduleRequest('PUT', week(), proposal);
+    expect(rejected).toMatchObject({
+      status: 409,
+      body: { appointmentIds: [second.id] },
+    });
+  }
+  expect(
+    await db.workShift.findMany({
+      where: { staffId },
+      select: { startMinute: true, endMinute: true, breaks: true },
+    }),
+  ).toEqual([{ startMinute: 540, endMinute: 600, breaks: [] }]);
+});
+
+test('đổi ngày nghỉ nguyên tử, bảo toàn ngày nguồn khi đích có lịch hoặc đã nghỉ', async () => {
+  const from = day.add({ days: 1 }).toString();
+  const to = day.add({ days: 2 }).toString();
+  const days = (method, date, body) =>
+    scheduleRequest(method, 'days-off/' + date, body);
+  const created = (await book()).body;
+  expect((await days('PUT', from)).status).toBe(204);
+  expect(await days('PATCH', from, { date: day.toString() })).toMatchObject({
+    status: 409,
+    body: { appointmentIds: [created.id] },
+  });
+  expect((await days('PUT', to)).status).toBe(204);
+  expect(await days('PATCH', from, { date: to })).toMatchObject({
+    status: 409,
+    body: { code: 'DAY_OFF_ALREADY_EXISTS' },
+  });
+  expect((await days('DELETE', to)).status).toBe(204);
+  expect((await days('PATCH', from, { date: to })).status).toBe(204);
+  expect((await days('PATCH', from, { date: from })).status).toBe(404);
+  expect(
+    (await db.dayOff.findMany({ where: { staffId } })).map((d) =>
+      d.date.toISOString().slice(0, 10),
+    ),
+  ).toEqual([to]);
+  expect((await days('DELETE', to)).status).toBe(204);
+  expect(await db.dayOff.count({ where: { staffId } })).toBe(0);
+  expect(
+    await db.appointment.findUniqueOrThrow({ where: { id: created.id } }),
+  ).toMatchObject({ status: 'PENDING' });
+});
+
+test.each(['ca', 'ngày nghỉ'])(
+  'đặt đồng thời với đổi %s: kiểm tra cấu hình và lịch cuối trong PostgreSQL',
+  async (kind) => {
+    const isShift = kind === 'ca';
+    const [booking, edit] = await Promise.all([
+      book(),
+      isShift
+        ? scheduleRequest('PUT', week(), shift('10:00', '12:00'))
+        : scheduleRequest('PUT', 'days-off/' + day.toString()),
+    ]);
+    expect([
+      [201, 409],
+      [400, 204],
+    ]).toContainEqual([booking.status, edit.status]);
+    const shifts = await db.workShift.findMany({
+      where: { staffId, weekday: day.dayOfWeek },
+    });
+    const daysOff = await db.dayOff.count({ where: { staffId } });
+    const held = await db.appointment.findMany({
+      where: { staffId, status: { in: ['PENDING', 'CONFIRMED'] } },
+    });
+    expect(shifts.map((s) => s.startMinute)).toEqual([
+      isShift && edit.status === 204 ? 600 : 540,
+    ]);
+    expect(daysOff).toBe(!isShift && edit.status === 204 ? 1 : 0);
+    expect(held.map((a) => a.id)).toEqual(
+      booking.status === 201 ? [booking.body.id] : [],
+    );
+    if (booking.status === 201)
+      expect(edit.body.appointmentIds).toEqual([booking.body.id]);
+  },
+);
+
+test('bỏ phân công, ngừng hoạt động và tăng thời lượng chỉ đổi điều kiện đặt mới', async () => {
+  const id = (await book()).body.id;
+  const saved = await db.appointment.findUniqueOrThrow({ where: { id } });
+  const staffPath = '/admin/staff/' + staffId;
+  const servicePath = '/admin/services/' + service.id;
+  for (const [method, path, disable, enable] of [
+    [
+      'PUT',
+      staffPath + '/services',
+      { serviceIds: [] },
+      { serviceIds: [service.id] },
+    ],
+    ['PATCH', staffPath, { active: false }, { active: true }],
+    ['PATCH', servicePath, { active: false }, { active: true }],
+  ]) {
+    expect(
+      (await http(method, path, disable, admin.cookie)).status,
+    ).toBeLessThan(300);
+    expect((await book('09:30')).status).toBe(404);
+    expect((await scheduleRequest('PUT', week(), { shifts: [] })).status).toBe(
+      409,
+    );
+    expect(
+      (await http(method, path, enable, admin.cookie)).status,
+    ).toBeLessThan(300);
+  }
+  expect(
+    (await http('PATCH', servicePath, { durationMinutes: 60 }, admin.cookie))
+      .status,
+  ).toBe(200);
+  expect(
+    (await scheduleRequest('PUT', week(), shift('09:00', '10:00'))).status,
+  ).toBe(204);
+  expect((await book('09:30')).status).toBe(400);
+  expect(await db.appointment.findUniqueOrThrow({ where: { id } })).toEqual(
+    saved,
+  );
+});
