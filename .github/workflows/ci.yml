@@ -25,7 +25,9 @@ jobs:
           cp .env.example .env
           cp apps/api/.env.example apps/api/.env
           pnpm db:up
+      - run: pnpm db:migrate
       - run: pnpm test
+      - run: pnpm test:integration
       - run: pnpm build
       - if: always() && hashFiles('.env') != ''
         run: pnpm db:down

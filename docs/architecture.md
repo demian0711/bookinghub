@@ -29,6 +29,7 @@ Ca định kỳ biểu diễn theo ngày trong tuần và giờ địa phương 
 
 Bộ phiên bản M1 đã được chọn và ghi trong [hướng dẫn thiết lập](setup.md).
 
-- Chọn cách xác thực và quản lý phiên phù hợp với REST API và Next.js.
+Xác thực và phân quyền dùng [session PostgreSQL và cookie cùng origin](adr/0001-auth-session.md).
+
 - Thử nghiệm ràng buộc loại trừ theo nhân viên và khoảng thời gian nửa mở cho hai trạng thái giữ chỗ. Xác minh migration với Prisma, cách ánh xạ lỗi và kết quả khi hai giao dịch ghi đồng thời trên PostgreSQL thật.
 - Xác minh cách đồng bộ thao tác đổi cấu hình ca/nghỉ với thao tác đặt lịch. Chốt cách admin giải quyết các lịch bị ảnh hưởng trước khi áp dụng thay đổi.

@@ -7,6 +7,8 @@ import {
 import { ApiOkResponse, ApiServiceUnavailableResponse } from '@nestjs/swagger';
 import { PrismaService } from './prisma/prisma.service';
 
+import { PublicRoute } from './auth/guards';
+@PublicRoute()
 @Controller()
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}

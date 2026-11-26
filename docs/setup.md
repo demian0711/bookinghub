@@ -28,13 +28,14 @@ cp -n apps/web/.env.example apps/web/.env.local
 
 API chạy trên máy Windows nên dùng host `127.0.0.1` và cổng do Compose publish. Với env mẫu, đích là `127.0.0.1:5432/bookinghub`. Nếu đã đổi cấu hình Compose, đối chiếu lại URL trong env của API. Biến đã export trong shell được ưu tiên hơn file. Nếu từng export URL database tạm để test, chạy `unset DATABASE_URL` trong Git Bash trước khi khởi động API hoặc Jest.
 
-Prisma Client được sinh khi chạy dev, typecheck, test hoặc build. M1 chưa có migration nghiệp vụ.
+Prisma Client được sinh khi chạy dev, typecheck, test hoặc build. M2 dùng migration cho User và Session.
 
 ## Khởi động và kiểm tra
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm db:up
+pnpm db:migrate
 docker compose ps
 pnpm dev
 ```
@@ -66,3 +67,36 @@ Lệnh `db:down` giữ volume cho lần chạy tiếp theo.
 - **Không kết nối được Docker** — mở Docker Desktop và chờ `docker info` đọc được trạng thái server. Kiểm tra service bằng `docker compose ps` và `docker compose logs postgres`.
 - **Ready trả 503** — đối chiếu hai file env và cổng publish bằng `docker compose port postgres 5432`. Volume đã khởi tạo giữ tài khoản và mật khẩu ban đầu. Khởi động lại dev sau khi sửa env của API.
 - **Cổng đã dùng** — chạy `netstat -ano | grep -E ':(3000|4000|5432)[[:space:]]'` trong Git Bash. Nếu đổi cổng PostgreSQL, cập nhật cả `POSTGRES_PORT` và `DATABASE_URL`. Nếu đổi cổng API, cập nhật `API_ORIGIN` rồi khởi động lại web hoặc build lại.
+
+## Xác thực M2
+
+Sau khi `pnpm db:up`, chạy `pnpm db:migrate` để áp dụng migration bằng DATABASE_URL của API. Lệnh dùng migrate deploy và giữ dữ liệu hiện có. Mặc định WEB_ORIGIN là `http://localhost:3000` ở development/test. Nếu dùng host khác, đặt chính xác origin web (không có dấu / cuối) trong `apps/api/.env` rồi khởi động lại API. Production yêu cầu WEB_ORIGIN dùng HTTPS.
+
+Để tạo tài khoản demo, đặt ba mật khẩu riêng dài 12–128 ký tự trong Git Bash. Cú pháp dưới đây đọc ẩn và chỉ bật seed cho một lệnh. Tên đăng nhập là `customer@demo.bookinghub.test`, `staff@demo.bookinghub.test` và `admin@demo.bookinghub.test`. Seed chỉ tạo email chưa tồn tại trên PostgreSQL loopback ở development.
+
+```bash
+for role in CUSTOMER STAFF ADMIN; do
+  read -rsp "Mật khẩu demo cho $role: " "DEMO_${role}_PASSWORD"; echo
+  export "DEMO_${role}_PASSWORD"
+done
+NODE_ENV=development ALLOW_DEMO_SEED=1 pnpm db:seed
+unset DEMO_CUSTOMER_PASSWORD DEMO_STAFF_PASSWORD DEMO_ADMIN_PASSWORD
+```
+
+### Kiểm tra bằng HTTP client
+
+Chạy `pnpm dev`. Dùng Postman với cookie jar bật và gửi qua `http://localhost:3000/api/v1` để kiểm tra cả proxy. Trong mỗi POST, đặt hai header `Origin: http://localhost:3000` và `X-BookingHub-CSRF: 1`. Chọn JSON cho request body. Swagger development mô tả hợp đồng tại http://localhost:4000/api/docs. Thử thao tác ghi bằng HTTP client vì Swagger trên cổng 4000 có origin khác web.
+
+| Thứ tự | Request             | Body và kết quả                                                                                                                   |
+| ------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1      | POST /auth/register | JSON gồm email, password (12–128 ký tự) và displayName (1–100 ký tự). Nhận 201 với role CUSTOMER. Bỏ qua nếu dùng tài khoản seed. |
+| 2      | POST /auth/login    | JSON gồm email và password. Nhận 200 và cookie HttpOnly trong cookie jar.                                                         |
+| 3      | GET /auth/me        | Cookie jar tự gửi cookie. Nhận 200 với id, email, displayName, role.                                                              |
+| 4      | POST /auth/logout   | Gửi hai header như trên và cookie hiện tại. Nhận 204.                                                                             |
+| 5      | GET /auth/me        | Nhận 401 sau đăng xuất.                                                                                                           |
+
+Thiếu header CSRF hoặc sai Origin trả 403. Tài khoản bị khóa và mật khẩu sai đều trả 401 khi đăng nhập. Xem [ADR về session và cookie](adr/0001-auth-session.md) cho hạn phiên và giới hạn tần suất.
+
+### Kiểm thử với PostgreSQL riêng
+
+Chạy `pnpm test:integration` từ gốc khi Docker Engine hoạt động. Runner tạo container PostgreSQL mới với mật khẩu và cổng loopback ngẫu nhiên, dùng tmpfs, áp dụng migration, chạy Jest qua HTTP rồi dừng container. DATABASE_URL của test được lấy từ container này. Database local vẫn được giữ cho smoke test M1 (`pnpm test`).
