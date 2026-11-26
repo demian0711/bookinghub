@@ -40,3 +40,13 @@ M3 lưu giá nguyên 0–10.000.000 VND và thời lượng nguyên 1–480 phú
 Ngừng dịch vụ hoặc tài khoản nhân viên bằng active=false. Hồ sơ, dịch vụ và phân công vẫn tồn tại. Danh mục công khai chỉ trả nhân viên đang hoạt động được gán cho dịch vụ đang hoạt động. Có thể chuẩn bị phân công trong khi dịch vụ ngừng; phân công chỉ có hiệu lực công khai khi cả hai phía hoạt động.
 
 Khi triển khai đặt lịch ở M5, API phải đọc lại trạng thái hai phía và phân công lúc ghi, lấy giá và thời lượng từ dịch vụ trong database để lưu bản chụp trên lịch. Ngừng hoạt động, bỏ phân công hoặc thay đổi giá/thời lượng không tự hủy, dời hay tính lại lịch cũ. Lịch sẽ tham chiếu trực tiếp nhân viên và dịch vụ; bỏ một dòng phân công chỉ thay đổi khả năng nhận lịch mới.
+
+## Lịch làm việc và giờ trống (M4)
+
+Salon dùng múi giờ IANA `Asia/Ho_Chi_Minh`. Ca định kỳ và khoảng nghỉ được lưu dưới dạng số phút trên đồng hồ địa phương; thứ dùng ISO 1–7 (thứ Hai–Chủ nhật). Ngày nghỉ của nhân viên là một ngày lịch, không mang múi giờ. API dùng Temporal và trả thời điểm bắt đầu/kết thúc kèm offset.
+
+- Cửa sổ đặt gồm **hôm nay và 29 ngày tiếp theo** tính theo ngày địa phương salon. Ngày ngoài cửa sổ bị từ chối. Trong ngày hôm nay, loại mọi giờ bắt đầu sớm hơn thời điểm hiện tại; đúng thời điểm hiện tại vẫn hợp lệ.
+- Chỉ bắt đầu tại phút **:00, :15, :30, :45**. Ca 09:07 có giờ bắt đầu đầu tiên là 09:15. Giá và thời lượng lấy từ dịch vụ đang hoạt động ở backend.
+- Giờ cấu hình dùng HH:mm. Chỉ cho phép 24:00 làm mốc kết thúc ngày. Không hỗ trợ ca qua nửa đêm. Mỗi ca và mỗi khoảng nghỉ phải có start < end. Các ca cùng nhân viên và thứ không chồng nhau; các khoảng nghỉ nằm trọn trong ca cha và không chồng nhau.
+- Dùng khoảng nửa mở [start, end). Dịch vụ phải nằm trọn trong **một** ca, không ghép các ca kể cả khi nối sát. Có thể kết thúc đúng lúc bắt đầu nghỉ hoặc kết thúc ca, và bắt đầu đúng lúc hết nghỉ. Ngày nghỉ chặn toàn bộ ca của nhân viên trong ngày đó.
+- M4 chỉ trả giờ phù hợp cấu hình cho cặp nhân viên–dịch vụ đang hoạt động và có phân công. M5 cần đọc các lịch PENDING/CONFIRMED của nhân viên, loại mọi khoảng giao với chúng và kiểm tra lại khi ghi lịch. Thao tác tạo lịch và thay đổi cấu hình phải phối hợp khóa cùng nhân viên để phát hiện lịch bị ảnh hưởng.

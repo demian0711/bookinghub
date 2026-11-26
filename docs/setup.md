@@ -160,3 +160,49 @@ rm -f -- "$jar"
 ```
 
 Swagger tại http://localhost:4000/api/docs có nhóm `catalog` và `admin/catalog`. Dùng Git Bash như trên cho request ghi để gửi đúng cookie và Origin.
+
+## M4 · Kiểm tra giờ trống bằng Git Bash
+
+**Cách nhanh:** mở Docker Desktop, mở Git Bash ở gốc repo rồi chạy `pnpm test:integration`. Bài test tự tạo nhân viên, dịch vụ, ca và ngày nghỉ trong PostgreSQL riêng. Bạn không cần Postman hoặc tài khoản demo cho cách này.
+
+### Xem giờ trống của nhân viên demo
+
+1. Ở Git Bash, chạy `pnpm install --frozen-lockfile`, `pnpm db:up`, rồi `pnpm db:migrate`. Chạy lại bước **tạo tài khoản demo** ở mục Xác thực M2 để bổ sung ca làm cho tài khoản staff demo. Seed tạo lịch thứ Hai–thứ Bảy, 09:00–17:00, nghỉ 12:00–13:00. Seed giữ nguyên các thứ đã được admin cấu hình, kể cả thứ có danh sách ca rỗng.
+2. Chạy `pnpm dev` và giữ cửa sổ này mở. Mở một Git Bash thứ hai tại gốc repo. Dán các lệnh dưới đây. Chúng chọn dịch vụ mẫu, lấy ID nhân viên được phân công và tính ngày thứ Hai kế tiếp theo giờ salon.
+
+```bash
+base=http://localhost:3000/api/v1
+service=bedc0c0a-d5a3-483a-adcb-772ffc926c88
+staff=$(curl -fsS "$base/services/$service/staff" | node -pe "JSON.parse(require('node:fs').readFileSync(0,'utf8')).items[0]?.id ?? ''")
+day=$(pnpm --filter @bookinghub/api exec node -p "((d)=>d.add({days:8-d.dayOfWeek}).toString())(require('@js-temporal/polyfill').Temporal.Now.plainDateISO('Asia/Ho_Chi_Minh'))")
+curl -sS -G "$base/availability" --data-urlencode "serviceId=$service" --data-urlencode "staffId=$staff" --data-urlencode "date=$day"
+```
+
+3. Đọc mảng `slots`. Với seed mặc định và dịch vụ 45 phút, suất đầu là 09:00–09:45, suất cuối trước giờ nghỉ là 11:15–12:00, suất đầu sau nghỉ bắt đầu lúc 13:00. Timestamp có hậu tố `+07:00`. Nếu biến `staff` rỗng, kiểm tra phân công và trạng thái dịch vụ/nhân viên ở M3. Nếu `slots` rỗng với HTTP 200, cấu hình hợp lệ nhưng ngày đã chọn không còn giờ phù hợp.
+
+### Sửa cấu hình bằng tài khoản ADMIN
+
+Dùng bước đăng nhập bằng curl ở mục M3 để có biến `jar` và `headers` trong cùng cửa sổ Git Bash. Các request ghi cần cookie, `Origin` và `X-BookingHub-CSRF`. Đường dẫn gốc bên dưới dành riêng cho nhân viên đang chọn.
+
+```bash
+schedule="$base/admin/staff/$staff/schedule"
+curl -sS -b "$jar" "$schedule"
+```
+
+| Method và đường dẫn                                    | Ý nghĩa                                                                                                            |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| GET /admin/staff/{staffId}/schedule                    | Trả `week` và `daysOff`. Thứ chưa cấu hình không có ca.                                                            |
+| PUT /admin/staff/{staffId}/schedule/week/{weekday}     | Thay toàn bộ ca và nghỉ của **một thứ** (1 = thứ Hai, 7 = Chủ nhật). Gửi `{"shifts":[]}` để xóa các ca của thứ đó. |
+| PUT /admin/staff/{staffId}/schedule/days-off/{date}    | Nghỉ trọn ngày địa phương YYYY-MM-DD, kể cả khi có ca định kỳ.                                                     |
+| DELETE /admin/staff/{staffId}/schedule/days-off/{date} | Bỏ ngoại lệ ngày nghỉ; ca định kỳ lại có hiệu lực.                                                                 |
+
+Ví dụ sau thay lịch **mọi thứ Hai** của nhân viên demo bằng hai ca. Mỗi khoảng nghỉ thuộc đúng ca chứa nó.
+
+```bash
+curl -i -b "$jar" "${headers[@]}" -X PUT "$schedule/week/1" \
+  -d '{"shifts":[{"start":"09:00","end":"12:00","breaks":[{"start":"10:00","end":"10:15"}]},{"start":"13:00","end":"17:00","breaks":[]}]}'
+```
+
+Các lệnh ghi thành công trả **204**, không có body. Thử thêm ngày nghỉ bằng `curl -i -b "$jar" "${headers[@]}" -X PUT "$schedule/days-off/$day"`, gọi lại API công khai cho cùng ngày để thấy `slots: []`. Đổi PUT thành DELETE để bỏ ngày nghỉ thử. Giờ sai, ca chồng hoặc ngày tra cứu ngoài cửa sổ trả 400. Cặp nhân viên–dịch vụ không hoạt động hoặc chưa phân công trả 404.
+
+M4 tính theo lịch làm việc. Việc trừ các lịch hẹn thực sự giữ chỗ sẽ được bổ sung ở M5. Xem hợp đồng tại http://localhost:4000/api/docs trong hai nhóm `availability` và `admin/schedule`.

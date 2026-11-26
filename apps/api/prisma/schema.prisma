@@ -57,6 +57,9 @@ model StaffProfile {
   bio         String         @default("") @db.VarChar(1000)
   assignments StaffService[]
 
+  workDays WorkDay[]
+  daysOff  DayOff[]
+
   @@unique([userId, role])
 }
 
@@ -68,4 +71,42 @@ model StaffService {
 
   @@id([staffId, serviceId])
   @@index([serviceId, staffId])
+}
+
+model WorkDay {
+  staffId String       @db.Uuid
+  weekday Int          @db.SmallInt
+  staff   StaffProfile @relation(fields: [staffId], references: [userId], onDelete: Restrict)
+  shifts  WorkShift[]
+
+  @@id([staffId, weekday])
+}
+
+model WorkShift {
+  id          String       @id @default(uuid()) @db.Uuid
+  staffId     String       @db.Uuid
+  weekday     Int          @db.SmallInt
+  workDay     WorkDay      @relation(fields: [staffId, weekday], references: [staffId, weekday], onDelete: Cascade)
+  startMinute Int          @db.SmallInt
+  endMinute   Int          @db.SmallInt
+  breaks      ShiftBreak[]
+
+  @@unique([staffId, weekday, startMinute])
+}
+
+model ShiftBreak {
+  shiftId     String    @db.Uuid
+  shift       WorkShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  startMinute Int       @db.SmallInt
+  endMinute   Int       @db.SmallInt
+
+  @@id([shiftId, startMinute])
+}
+
+model DayOff {
+  staffId String       @db.Uuid
+  date    DateTime     @db.Date
+  staff   StaffProfile @relation(fields: [staffId], references: [userId], onDelete: Restrict)
+
+  @@id([staffId, date])
 }
