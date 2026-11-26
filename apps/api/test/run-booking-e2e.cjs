@@ -3,7 +3,7 @@ const { once } = require('node:events');
 const { randomUUID } = require('node:crypto');
 const { Temporal } = require('@js-temporal/polyfill');
 const { hashPassword } = require('../dist/auth/password');
-async function runBookingTests({ db, origin, webDir, webRequire }) {
+async function runBookingTests({ db, auth, origin, webDir, webRequire }) {
   // Ngày test luôn nằm trong cửa sổ của salon và đủ xa để khách được hủy.
   const day = Temporal.Now.plainDateISO('Asia/Ho_Chi_Minh').add({ days: 2 });
   const password = randomUUID(),
@@ -93,14 +93,20 @@ async function runBookingTests({ db, origin, webDir, webRequire }) {
   const opening = staffDay
     .toZonedDateTime({ timeZone: 'Asia/Ho_Chi_Minh', plainTime: '09:00' })
     .toInstant();
-  async function visit(staffId, label, start, status = 'PENDING') {
+  async function visit(
+    staffId,
+    label,
+    start,
+    status = 'PENDING',
+    priceVnd = 180000,
+  ) {
     const row = await db.appointment.create({
       data: {
         customerId: guest.id,
         staffId,
         serviceId: service.id,
         serviceName: label,
-        priceVnd: 180000,
+        priceVnd,
         durationMinutes: 30,
         status,
         startAt: new Date(start.epochMilliseconds),
@@ -126,6 +132,39 @@ async function runBookingTests({ db, origin, webDir, webRequire }) {
       'CONFIRMED',
     ),
   };
+  await db.user.create({
+    data: {
+      email: 'admin-e2e@example.test',
+      displayName: 'Quản trị thử',
+      passwordHash,
+      role: 'ADMIN',
+    },
+  });
+  const reportDay = staffDay.subtract({ days: 45 });
+  const reportStart = reportDay
+    .toZonedDateTime({ timeZone: 'Asia/Ho_Chi_Minh', plainTime: '00:00' })
+    .toInstant();
+  for (const [hours, status] of [
+    [0, 'COMPLETED'],
+    [1, 'COMPLETED'],
+    [2, 'CANCELLED'],
+    [3, 'PENDING'],
+    [24, 'COMPLETED'],
+  ]) {
+    await visit(
+      staffAn.id,
+      'Bản chụp dịch vụ',
+      reportStart.add({ hours }),
+      status,
+      hours === 1 ? 120000 : 180000,
+    );
+  }
+  // Cấp phiên thật cho các bài quản trị. Luồng đăng nhập qua HTTP được kiểm tra ở các bài khách và nhân viên.
+  const sessions = {};
+  for (const name of ['admin-e2e', 'mai', 'staff-an'])
+    sessions[name] = (
+      await auth.login({ email: name + '@example.test', password })
+    ).token;
   const child = spawn(
     process.execPath,
     [
@@ -138,6 +177,9 @@ async function runBookingTests({ db, origin, webDir, webRequire }) {
       stdio: 'inherit',
       env: {
         ...process.env,
+        E2E_ADMIN_SESSIONS: JSON.stringify(sessions),
+        E2E_REPORT_DAY: reportDay.toString(),
+        E2E_ADMIN_DAY: staffDay.add({ days: 7 }).toString(),
         E2E_STAFF_CASES: JSON.stringify(staffCases),
         E2E_ORIGIN: origin,
         E2E_DAY: day.toString(),

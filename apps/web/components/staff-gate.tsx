@@ -7,8 +7,10 @@ import { useResource } from '@/lib/use-resource';
 export function StaffFeedback({
   error,
   retry,
+  admin = false,
 }: {
   error?: number;
+  admin?: boolean;
   retry: () => void;
 }) {
   if (error === undefined)
@@ -20,7 +22,9 @@ export function StaffFeedback({
   if (error === 401)
     return (
       <p className="notice">
-        Vui lòng đăng nhập để xem lịch làm việc.{' '}
+        {admin
+          ? 'Vui lòng đăng nhập để quản trị salon.'
+          : 'Vui lòng đăng nhập để xem lịch làm việc.'}{' '}
         <Link
           className="text-link"
           href={
@@ -51,14 +55,25 @@ export function StaffFeedback({
     );
   return (
     <p className="notice" role="alert">
-      Chưa tải được lịch làm việc. <button onClick={retry}>Thử lại</button>
+      {admin
+        ? 'Chưa xác minh được phiên quản trị.'
+        : 'Chưa tải được lịch làm việc.'}{' '}
+      <button onClick={retry}>Thử lại</button>
     </p>
   );
 }
-function Session({ children }: { children: ReactNode }) {
+function Session({ children, admin }: { children: ReactNode; admin: boolean }) {
   const { result, retry } = useResource<User>('/api/v1/auth/me');
   if (!result || 'error' in result)
-    return <StaffFeedback retry={retry} error={result?.error} />;
+    return <StaffFeedback admin={admin} retry={retry} error={result?.error} />;
+  if (admin && result.data.role !== 'ADMIN')
+    return (
+      <p className="notice">
+        Khu vực này chỉ dành cho quản trị viên.{' '}
+        <Link href="/tai-khoan">Về tài khoản</Link>
+      </p>
+    );
+  if (admin) return <>{children}</>;
   if (result.data.role !== 'STAFF')
     return <StaffFeedback error={403} retry={retry} />;
   return (
@@ -75,7 +90,13 @@ function Session({ children }: { children: ReactNode }) {
     </>
   );
 }
-export function StaffGate({ children }: { children: ReactNode }) {
+export function StaffGate({
+  children,
+  admin = false,
+}: {
+  children: ReactNode;
+  admin?: boolean;
+}) {
   const path = usePathname();
   const [version, setVersion] = useState(0);
   // Cookie chỉ gửi tới /api/v1. Layout chỉ mở nội dung sau khi xác minh phiên qua cùng origin.
@@ -99,7 +120,9 @@ export function StaffGate({ children }: { children: ReactNode }) {
   }, []);
   return (
     <section className="shell inner booking staff-area">
-      <Session key={path + ':' + version}>{children}</Session>
+      <Session admin={admin} key={path + ':' + version}>
+        {children}
+      </Session>
     </section>
   );
 }

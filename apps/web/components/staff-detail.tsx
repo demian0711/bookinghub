@@ -12,6 +12,7 @@ import { StaffFeedback } from './staff-gate';
 import type { StaffVisit } from './staff-list';
 type Detail = StaffVisit & {
   serverNow: string;
+  staff?: { user: { displayName: string } };
   events: { status: Status; occurredAt: string; reason: string | null }[];
 };
 const labels = {
@@ -24,7 +25,9 @@ type Action = keyof typeof labels;
 function Actions({
   visit,
   refresh,
+  area,
 }: {
+  area: 'admin' | 'staff';
   visit: Detail;
   refresh: (message: string) => void;
 }) {
@@ -74,7 +77,7 @@ function Actions({
     let message: string;
     try {
       const r = await fetch(
-        '/api/v1/staff/appointments/' + visit.id + '/status',
+        '/api/v1/' + area + '/appointments/' + visit.id + '/status',
         {
           method: 'PATCH',
           cache: 'no-store',
@@ -166,15 +169,25 @@ function Actions({
     </>
   );
 }
-export function StaffDetail({ id }: { id: string }) {
+export function StaffDetail({
+  id,
+  area = 'staff',
+}: {
+  id: string;
+  area?: 'admin' | 'staff';
+}) {
   const { result, retry } = useResource<Detail>(
-    '/api/v1/staff/appointments/' + encodeURIComponent(id),
+    '/api/v1/' + area + '/appointments/' + encodeURIComponent(id),
   );
   const [message, setMessage] = useState('');
   const visit = result && 'data' in result ? result.data : undefined;
   return (
     <>
-      <h1>Chi tiết lịch được giao</h1>
+      <h1>
+        {area === 'admin'
+          ? 'Chi tiết lịch toàn salon'
+          : 'Chi tiết lịch được giao'}
+      </h1>
       {message && (
         <p className="notice" role="status">
           {message}
@@ -185,6 +198,9 @@ export function StaffDetail({ id }: { id: string }) {
           <h2>{visit.serviceName}</h2>
           <dl>
             {Object.entries({
+              ...(visit.staff
+                ? { 'Nhân viên': visit.staff.user.displayName }
+                : {}),
               Khách: visit.customer.displayName,
               'Trạng thái': statusNames[visit.status],
               'Ngày hẹn': dayText(visit.startAt),
@@ -210,6 +226,7 @@ export function StaffDetail({ id }: { id: string }) {
             ))}
           </ul>
           <Actions
+            area={area}
             visit={visit}
             refresh={(msg) => {
               setMessage(msg);

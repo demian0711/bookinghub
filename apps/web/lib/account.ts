@@ -13,7 +13,7 @@ export function returnPath(raw: string | string[] | undefined) {
     const url = new URL(raw, base);
     if (
       url.origin === base &&
-      /^\/(?:tai-khoan|dat-lich|(?:staff|lich-cua-toi|dich-vu)(?:\/[a-f0-9-]{36})?)?$/i.test(
+      /^\/(?:admin(?:\/(?:dich-vu|nhan-vien|ca-lam|lich-hen(?:\/[a-f0-9-]{36})?))?|tai-khoan|dat-lich|(?:staff|lich-cua-toi|dich-vu)(?:\/[a-f0-9-]{36})?)?$/i.test(
         url.pathname,
       )
     )

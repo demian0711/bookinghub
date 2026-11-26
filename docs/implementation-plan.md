@@ -14,7 +14,7 @@ M0 đã hoàn thành. M1 đã triển khai và chạy thử trên Windows với 
 | M7 · Web cho khách              | M6               | Xem dịch vụ, chọn giờ, đăng nhập, đặt, xem và hủy lịch                                          | Playwright chạy luồng qua API thật, bao gồm phản hồi khi giờ vừa hết chỗ.                                                                                                                                                     |
 | M8 · Web vận hành               | M6, M7           | Màn hình staff/admin và dashboard cơ bản                                                        | Kiểm tra staff chỉ xử lý lịch được giao, admin quản lý toàn salon. Đối chiếu số liệu dashboard với lịch thực và kiểm tra lại luồng khách sau thay đổi cấu hình.                                                               |
 
-Trước M8 chốt chỉ số và kỳ thống kê cho dashboard.
+Dashboard M8B dùng khoảng ngày bắt đầu hẹn tại salon, tối đa 90 ngày. Xem định nghĩa và cách đối chiếu trong [hướng dẫn nghiệm thu M8B](setup.md#m8b--nghiệm-thu-khu-vực-quản-trị).
 
 ### M5B · Bảo toàn lịch khi sửa cấu hình
 
@@ -30,4 +30,8 @@ Ba kịch bản Playwright đã đạt trên Chrome với Next.js, NestJS và Po
 
 ### M8A · Khu vực nhân viên
 
-Đã triển khai `/staff` và chi tiết lịch được giao. Web xác minh phiên khi mở khu vực, API kiểm tra STAFF và phạm vi lịch ở từng request. Nhân viên có thể lọc theo ngày salon và trạng thái, xác nhận, hủy kèm lý do, ghi nhận không đến và hoàn thành. Nút thao tác dùng mốc thời gian từ backend. Khi có xung đột, trang tải lại chi tiết. Bốn kịch bản E2E nhân viên và ba kịch bản khách đã đạt trên Chrome với PostgreSQL riêng. Khu vực quản trị và dashboard thống kê thuộc phần tiếp theo.
+Đã triển khai `/staff` và chi tiết lịch được giao. Web xác minh phiên khi mở khu vực, API kiểm tra STAFF và phạm vi lịch ở từng request. Nhân viên có thể lọc theo ngày salon và trạng thái, xác nhận, hủy kèm lý do, ghi nhận không đến và hoàn thành. Nút thao tác dùng mốc thời gian từ backend. Khi có xung đột, trang tải lại chi tiết. Bốn kịch bản E2E nhân viên và ba kịch bản khách đã đạt trên Chrome với PostgreSQL riêng. M8B bổ sung khu vực quản trị, quản lý cấu hình, xử lý lịch toàn salon và dashboard có liên kết đối chiếu.
+
+### M8B · Khu vực quản trị
+
+Đã triển khai danh mục, nhân viên, phân công, lịch làm việc, lịch toàn salon và dashboard tại `/admin`. PostgreSQL dùng chỉ mục giờ bắt đầu và ID cho truy vấn khoảng ngày. Đã kiểm chứng 41 bài tích hợp và 10 kịch bản Chrome trên PostgreSQL riêng. Ba kịch bản mới bao phủ phân quyền, đối chiếu dashboard và luồng từ thay cấu hình đến khách đặt lịch, phản hồi xung đột và xử lý lịch.

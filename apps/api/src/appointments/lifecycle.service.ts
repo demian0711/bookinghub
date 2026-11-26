@@ -95,14 +95,22 @@ export class LifecycleService {
   async detail(
     actor: Actor,
     id: string,
-    view: 'standard' | 'staff' = 'standard',
+    view: 'standard' | 'staff' | 'admin' = 'standard',
   ) {
     const where = { id, ...scope(actor) };
     const row = await this.db.$transaction(
       async (tx) =>
-        view === 'staff'
-          ? tx.appointment.findFirst({ where, select: staffDetailFields })
-          : tx.appointment.findFirst({ where, include: { events } }),
+        view === 'admin'
+          ? tx.appointment.findFirst({
+              where,
+              select: {
+                ...staffDetailFields,
+                staff: { select: { user: { select: { displayName: true } } } },
+              },
+            })
+          : view === 'staff'
+            ? tx.appointment.findFirst({ where, select: staffDetailFields })
+            : tx.appointment.findFirst({ where, include: { events } }),
       { isolationLevel: 'RepeatableRead' },
     );
     if (!row) throw new NotFoundException();

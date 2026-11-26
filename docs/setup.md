@@ -327,3 +327,23 @@ pnpm test:e2e
 4. Mặc định danh sách hiển thị hôm nay theo giờ Việt Nam. Chọn **Ngày tại salon** trùng ngày hẹn, chọn trạng thái hoặc giữ **Tất cả trạng thái**, rồi bấm **Xem lịch**. Bấm lịch cần xử lý. Trang hiện tên khách, dịch vụ, thời gian, giá khi đặt, trạng thái và lịch sử.
 5. Với lịch **Chờ xác nhận**, chọn **Xác nhận lịch → Lưu thay đổi**, rồi tải lại trang. Với lịch đang giữ chỗ, **Hủy lịch** yêu cầu lý do (tối đa 500 ký tự). **Ghi nhận không đến** xuất hiện từ lúc bắt đầu và **Hoàn thành** từ lúc kết thúc, đều yêu cầu lịch đã xác nhận. Các thao tác này ghi vào dữ liệu local, nên hãy dùng lịch vừa tạo để thử.
 6. Để kiểm tra tự động cả xung đột, lịch quá khứ và quyền giữa hai nhân viên, chạy `pnpm test:e2e` bằng Git Bash. Bộ test tạo khách, nhân viên và lịch trong PostgreSQL tạm. Có thể giữ nguyên phiên dev và dữ liệu demo local.
+
+## M8B · Nghiệm thu khu vực quản trị
+
+1. Trong Git Bash chạy `pnpm db:up`, `pnpm db:migrate`, rồi `pnpm dev`. Tạo dữ liệu demo theo mục M2 nếu chưa có. Mở http://localhost:3000/admin rồi đăng nhập bằng `admin@demo.bookinghub.test` và mật khẩu ADMIN đã đặt khi seed.
+2. Vào **Dịch vụ** để tạo dịch vụ thử, sửa giá/thời lượng hoặc bỏ chọn **Đang hoạt động**. Vào **Nhân viên** để tạo tài khoản thử, cập nhật hồ sơ/trạng thái và lưu danh sách dịch vụ được giao.
+3. Chọn **Quản lý ca làm** trên hồ sơ nhân viên. Lưu một ca có khoảng nghỉ. Dùng cửa sổ ẩn danh với tài khoản khách để đặt một giờ trong ca đó. Quay lại quản trị, thử bỏ ca rồi lưu. Giao diện phải chỉ ra lịch bị ảnh hưởng, gồm ngày, giờ, trạng thái và liên kết **Xử lý lịch**. Mở liên kết để xem chi tiết và thao tác phù hợp. Thử thêm, chuyển và bỏ ngày nghỉ ở cùng trang.
+4. Vào **Tổng quan**. Chọn khoảng có lịch vừa đặt rồi bấm **Áp dụng**. Chọn **Đối chiếu toàn bộ lịch** và so tổng. Chọn một dòng trạng thái hoặc dịch vụ phổ biến để mở danh sách dùng cùng khoảng ngày với bộ lọc tương ứng.
+5. Chạy `pnpm test:e2e` để kiểm tra quyền, dashboard, luồng quản trị và hồi quy luồng khách bằng Chrome và PostgreSQL riêng.
+
+### Cách đọc số liệu
+
+Cả năm chỉ số dùng ngày của `Appointment.startAt` ở múi giờ `Asia/Ho_Chi_Minh` và trạng thái hiện tại của mỗi lịch. Chọn tối đa 90 ngày lịch, gồm cả ngày đầu và cuối. Backend truy vấn từ đầu ngày đầu đến trước đầu ngày liền sau. Mặc định giao diện chọn 7 ngày đến hết hôm nay. Mỗi phản hồi tổng hợp đọc từ một snapshot PostgreSQL.
+
+| Chỉ số                     | Cách tính                                                                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tổng số lịch               | Đếm mọi lịch có giờ bắt đầu trong phạm vi, gồm lịch đã hủy.                                                                                               |
+| Số lịch theo trạng thái    | Đếm lịch theo trạng thái hiện tại, gồm 0 cho trạng thái chưa có lịch.                                                                                     |
+| Giá trị dịch vụ hoàn thành | Cộng giá VND tại lúc đặt của lịch `COMPLETED`. Chỉ số phản ánh giá trị dịch vụ theo lịch, còn việc thu tiền nằm ngoài phạm vi dữ liệu này.                |
+| Tỷ lệ hủy                  | Số lịch `CANCELLED` chia tổng số lịch trong phạm vi. Hiển thị dấu gạch khi tổng bằng 0.                                                                   |
+| Dịch vụ phổ biến           | Nhóm lịch `COMPLETED` theo ID dịch vụ, lấy tối đa 10 dịch vụ dẫn đầu. Tên lấy từ danh mục hiện tại, còn chi tiết từng lịch hiển thị bản chụp tên lúc đặt. |

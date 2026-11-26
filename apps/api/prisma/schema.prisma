@@ -141,6 +141,7 @@ model Appointment {
   createdAt       DateTime           @default(now()) @db.Timestamptz(3)
   events          AppointmentEvent[]
 
+  @@index([startAt, id])
   @@index([staffId, startAt])
   @@index([customerId, startAt])
 }
