@@ -1,42 +1,9 @@
 'use client';
+import { useResource } from '@/lib/use-resource';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowUpRight, Clock3, Scissors } from 'lucide-react';
 import { price, type Service, type ServicePage } from '@/lib/catalog';
-type Result<T> = { url: string; data: T } | { url: string; error: number };
-function useCatalog<T>(path: string) {
-  const [attempt, retry] = useState(0);
-  const [result, setResult] = useState<Result<T>>();
-  const url = '/api/v1/services' + path;
-  useEffect(() => {
-    const abort = new AbortController();
-    async function load() {
-      try {
-        const response = await fetch(url, {
-          signal: abort.signal,
-          cache: 'no-store',
-        });
-        if (!response.ok) {
-          if (!abort.signal.aborted) setResult({ url, error: response.status });
-          return;
-        }
-        const data: T = await response.json();
-        if (!abort.signal.aborted) setResult({ url, data });
-      } catch {
-        if (!abort.signal.aborted) setResult({ url, error: 0 });
-      }
-    }
-    void load();
-    return () => abort.abort();
-  }, [url, attempt]);
-  return {
-    result: result?.url === url ? result : undefined,
-    retry: () => {
-      setResult(undefined);
-      retry((n) => n + 1);
-    },
-  };
-}
 function Feedback({ error, retry }: { error?: number; retry: () => void }) {
   if (error === undefined)
     return (
@@ -54,8 +21,8 @@ function Feedback({ error, retry }: { error?: number; retry: () => void }) {
 }
 export function Catalog({ featured = false }: { featured?: boolean }) {
   const [page, setPage] = useState(1);
-  const { result, retry } = useCatalog<ServicePage>(
-    '?pageSize=' + (featured ? 3 : 9) + '&page=' + page,
+  const { result, retry } = useResource<ServicePage>(
+    '/api/v1/services?pageSize=' + (featured ? 3 : 9) + '&page=' + page,
   );
   if (!result || 'error' in result)
     return <Feedback error={result?.error} retry={retry} />;
@@ -108,7 +75,9 @@ export function Catalog({ featured = false }: { featured?: boolean }) {
   );
 }
 export function ServiceDetail({ id }: { id: string }) {
-  const { result, retry } = useCatalog<Service>('/' + encodeURIComponent(id));
+  const { result, retry } = useResource<Service>(
+    '/api/v1/services/' + encodeURIComponent(id),
+  );
   if (!result || 'error' in result)
     return <Feedback error={result?.error} retry={retry} />;
   const s = result.data;
@@ -127,6 +96,9 @@ export function ServiceDetail({ id }: { id: string }) {
           <dd>{price(s.priceVnd)}</dd>
         </div>
       </dl>
+      <Link className="primary" href={'/dat-lich?serviceId=' + s.id}>
+        Chọn nhân viên và giờ
+      </Link>
     </article>
   );
 }

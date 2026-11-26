@@ -9,3 +9,6 @@ coverage/
 apps/api/src/generated/
 apps/web/next-env.d.ts
 *.log
+
+playwright-report/
+test-results/

@@ -352,3 +352,90 @@ button:disabled {
     font-size: 0.9rem;
   }
 }
+
+.booking {
+  max-width: 52rem;
+}
+.booking h1 {
+  margin: 1rem 0 1.75rem;
+}
+.booking h2 {
+  font-size: clamp(1.65rem, 4vw, 2.25rem);
+}
+.field {
+  display: grid;
+  gap: 0.45rem;
+  font-weight: 600;
+  margin: 1rem 0;
+}
+.field input,
+.field select {
+  padding: 0.75rem;
+  border: 1px solid var(--color-input);
+  border-radius: 0.55rem;
+  background: white;
+  color: var(--color-foreground);
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+}
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
+  gap: 0.55rem;
+  margin: 1rem 0;
+}
+.slot-grid [aria-pressed='true'] {
+  color: white;
+  background: var(--color-primary);
+}
+.booking-step,
+.summary {
+  margin-top: 1rem;
+}
+.summary,
+.cancel-dialog {
+  padding: 1.5rem;
+  background: #fffdf8;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+}
+.cancel-dialog {
+  margin: auto;
+  width: min(28rem, calc(100% - 2rem));
+  color: var(--color-foreground);
+}
+.cancel-dialog::backdrop {
+  background: #15261ab3;
+}
+.booking .actions {
+  flex-wrap: wrap;
+}
+.success {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+}
+.appointment-list {
+  display: grid;
+  gap: 1rem;
+}
+.appointment-list a {
+  display: block;
+  border: 1px solid var(--color-line);
+  padding: 1rem;
+  border-radius: 1rem;
+}
+.appointment-list span {
+  display: inline-block;
+  margin-inline-start: 1rem;
+  color: var(--color-primary);
+}
+.booking fieldset {
+  min-width: 0;
+}

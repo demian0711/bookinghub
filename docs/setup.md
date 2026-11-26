@@ -296,3 +296,25 @@ Danh sách hỗ trợ thêm `date=YYYY-MM-DD` theo ngày bắt đầu tại salo
 4. Để chạy kiểm thử tự động, mở Docker Desktop và chạy `pnpm test:web`. Máy cần Google Chrome. Playwright dùng Chrome headless, bản build web riêng, các cổng tạm và PostgreSQL tạm. Test bao gồm giao diện mobile, danh mục, biểu mẫu, đăng nhập sai/đúng, hai phiên trình duyệt độc lập và đường dẫn quay lại.
 
 Input dùng component từ registry shadcn/ui cho Tailwind 4. Font và ảnh minh họa được phục vụ từ ứng dụng. [shadcn/ui và Tailwind 4](https://ui.shadcn.com/docs/tailwind-v4) · [Ảnh minh họa salon](https://images.unsplash.com/photo-1600948836101-f9ffda59d250)
+
+## M7B · Đặt và quản lý lịch trên web
+
+### Chạy E2E trong Git Bash
+
+1. Mở Docker Desktop và đợi Docker chạy. Máy cần Google Chrome. Mở Git Bash tại thư mục BookingHub.
+2. Chạy hai lệnh sau. Bộ test tự tạo database PostgreSQL trong container riêng, áp dụng migration và mở web/API ở cổng tạm. Ngày hẹn thử là ngày salon hiện tại cộng hai ngày. Có thể giữ nguyên phiên dev đang chạy.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm test:e2e
+```
+
+3. Xem số test đạt ở cuối terminal. Khi có lỗi, mở báo cáo HTML bằng `pnpm --filter @bookinghub/web exec playwright show-report playwright-report`. Trong CI, tải artifact **bookinghub-e2e** của lượt chạy bị lỗi để xem báo cáo, ảnh và trace. Mỗi lần chạy dùng dữ liệu mới và tự dọn container.
+
+### Thử thủ công với dữ liệu local
+
+1. Trong Git Bash chạy `pnpm db:up`, `pnpm db:migrate`. Nếu chưa có dịch vụ hoặc ca làm, chạy bước tạo dữ liệu demo ở mục M2. Khởi động bằng `pnpm dev` hoặc dùng lại phiên đang chạy.
+2. Mở http://localhost:3000 trong cửa sổ ẩn danh. Chọn **Đặt lịch salon**, bấm một dịch vụ, rồi **Chọn nhân viên và giờ**. Chọn nhân viên, một ngày có ca trong 30 ngày tới và một giờ trống. Với dữ liệu demo, chọn thứ Hai–thứ Bảy, cách hiện tại ít nhất hai giờ nếu muốn thử hủy.
+3. Bấm **Tiếp tục**, kiểm tra dịch vụ, nhân viên, ngày, giờ và giá. Chọn **Đăng nhập để xác nhận** bằng tài khoản khách hoặc đăng ký ngay ở màn hình đăng nhập. Sau đăng nhập, web tải lại các giờ còn trống. Nếu giờ vẫn còn, bấm **Xác nhận đặt lịch**.
+4. Tại màn hình thành công, xem giá và thời lượng khi đặt. Bấm **← Lịch của tôi** hoặc vào **Tài khoản → Lịch của tôi**. Lọc theo ngày hoặc trạng thái. Mỗi trang hiển thị tối đa năm lịch. Chọn một lịch, bấm **Hủy lịch**, rồi **Giữ lịch** để quay lại hoặc **Xác nhận hủy** để gửi yêu cầu. Backend xét hạn hai giờ ngay khi xử lý.
+5. Để thử hết chỗ, dùng Chrome thường và cửa sổ ẩn danh với hai tài khoản khách khác nhau. Đưa cả hai đến bước xác nhận cùng dịch vụ, nhân viên, ngày và giờ. Xác nhận lần lượt ở hai cửa sổ. Khách thứ hai sẽ thấy thông báo giờ vừa có người đặt và danh sách giờ mới.

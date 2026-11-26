@@ -65,8 +65,12 @@ async function run() {
       ['./node_modules/prisma/build/index.js', 'migrate', 'deploy'],
       options,
     );
-    if (process.argv.includes('--web')) {
-      execFileSync(process.execPath, ['test/web-account.cjs'], options);
+    if (process.argv.includes('--web') || process.argv.includes('--e2e')) {
+      execFileSync(
+        process.execPath,
+        ['test/web-account.cjs', ...process.argv.slice(2)],
+        options,
+      );
       return;
     }
     execFileSync(
