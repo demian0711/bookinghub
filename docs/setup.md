@@ -265,3 +265,25 @@ curl -sS -b "$jar" "$schedule"
 
 4. Khi có xung đột, PUT trả **409** với mã `SCHEDULE_AFFECTS_APPOINTMENTS`. Đọc `startAt`, `endAt` (ISO có múi giờ), `status` và `id` trong từng mục. Giữ nguyên một ca bao trọn khoảng đó và đặt nghỉ bên ngoài khoảng của lịch trước khi gửi lại. GET cho thấy ca cũ vẫn còn. Preview rỗng vẫn có thể dẫn đến 409 nếu khách vừa đặt.
 5. Ngày nghỉ dùng `PUT $schedule/days-off/YYYY-MM-DD` để thêm, `PATCH` trên cùng đường dẫn với body `{"date":"YYYY-MM-DD"}` để chuyển sang ngày khác và `DELETE` để bỏ. Dùng cùng cookie và headers như lệnh PUT trên. Thành công trả **204**. PATCH trả **404** khi thiếu ngày nguồn hoặc **409 DAY_OFF_ALREADY_EXISTS** khi ngày đích đã nghỉ. Nếu đích có lịch giữ chỗ, lỗi 409 liệt kê lịch và ngày nguồn vẫn được giữ.
+
+## M6 · Xem và xử lý lịch hẹn
+
+1. Mở Docker Desktop. Trong Git Bash tại thư mục BookingHub, chạy `pnpm test:integration` để thử toàn bộ vòng đời trên database tạm. Bộ test tự tạo phiên khách, nhân viên và admin, đặt đồng hồ salon tại các mốc cần thử và kiểm tra lịch sử sau từng request.
+2. Để thử thủ công trên dữ liệu demo, chạy `pnpm db:up`, `pnpm db:migrate`, rồi `pnpm dev`. Mở Git Bash thứ hai, đăng nhập bằng curl theo mục M5A. Giữ biến `base`, `headers` và file cookie `jar` đến khi thử xong.
+3. Xem danh sách rồi nhập ID của một lịch trong kết quả. Đường dẫn chi tiết trả cả mảng `events` theo thời gian ghi. Khách thấy lịch của mình, nhân viên thấy lịch giao cho mình, admin thấy lịch toàn salon.
+
+```bash
+curl -sS -b "$jar" "$base/appointments?status=PENDING&page=1&pageSize=10&sort=startAt&order=asc"
+read -rp 'ID lịch muốn xem: ' id
+curl -sS -b "$jar" "$base/appointments/$id"
+```
+
+4. Để hủy một lịch **demo** đang PENDING, chạy ví dụ sau. Khách cần còn ít nhất hai giờ. Nhân viên hoặc admin phải cung cấp lý do. Với lịch đã xác nhận, gửi `expectedStatus` là `CONFIRMED`.
+
+```bash
+curl -i -b "$jar" "${headers[@]}" -X PATCH "$base/appointments/$id/status" -d '{"expectedStatus":"PENDING","status":"CANCELLED","reason":"Hủy lịch thử nghiệm"}'
+```
+
+5. HTTP 200 trả lịch và sự kiện mới. HTTP 409 yêu cầu đọc lại lịch và đối chiếu mốc thời gian. HTTP 404 dùng chung cho ID ngoài phạm vi và ID không tồn tại. Gọi lại `GET /availability` như mục M4 để thấy giờ vừa hủy nếu vẫn đủ điều kiện nhận lịch mới.
+
+Danh sách hỗ trợ thêm `date=YYYY-MM-DD` theo ngày bắt đầu tại salon và `staffId=UUID`. Bộ lọc luôn thu hẹp phạm vi của phiên. Trang từ 1 đến 1000, tối đa 50 lịch/trang. Sort cho phép `startAt` hoặc `createdAt`, chiều `asc` hoặc `desc`. Swagger nhóm `appointments` mô tả body và kết quả.

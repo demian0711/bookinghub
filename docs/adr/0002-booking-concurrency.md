@@ -19,7 +19,7 @@ POST dùng ON CONFLICT ON CONSTRAINT appointment_staff_held_excl DO NOTHING và 
 
 ## Lịch sử và thời gian
 
-Appointment tham chiếu User, StaffProfile và Service bằng khóa ngoại RESTRICT khi xóa. Bản chụp tên, giá và thời lượng cùng startAt/endAt tồn tại độc lập với danh mục. Trigger ghi sự kiện tạo với actor là khách từ phiên; thay đổi status ghi trạng thái trước/sau và thời điểm database. Khi M6 bổ sung API chuyển trạng thái, service phải kiểm tra quyền, đặt actor đã xác thực qua set_config('bookinghub.actor_id', ..., true) và cập nhật trong cùng transaction. Thiếu actor khi chuyển trạng thái làm toàn bộ cập nhật rollback.
+Appointment tham chiếu User, StaffProfile và Service bằng khóa ngoại RESTRICT khi xóa. Bản chụp tên, giá và thời lượng cùng startAt/endAt tồn tại độc lập với danh mục. Trigger ghi sự kiện tạo với actor là khách từ phiên; thay đổi status ghi trạng thái trước/sau và thời điểm database. Ở M6, service kiểm tra phạm vi lịch từ phiên, lấy khóa StaffProfile, kiểm tra thời gian sau khi có khóa, đặt actor đã xác thực qua set_config('bookinghub.actor_id', ..., true) và đặt lý do hủy trong cùng transaction. UPDATE chỉ thành công nếu trạng thái nguồn vẫn khớp. Thiếu actor khi chuyển trạng thái làm toàn bộ cập nhật rollback.
 
 Availability đọc cấu hình và lịch giữ chỗ nhất quán ở REPEATABLE READ. Kết quả chỉ đúng tại snapshot của request. Chỉ HTTP 201 từ POST xác nhận đã giữ chỗ.
 

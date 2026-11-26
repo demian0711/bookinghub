@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Temporal } from '@js-temporal/polyfill';
 
+export const salonClock = { now: () => Temporal.Now.instant() };
 export const salonZone = 'Asia/Ho_Chi_Minh';
 export interface MinuteRange {
   startMinute: number;

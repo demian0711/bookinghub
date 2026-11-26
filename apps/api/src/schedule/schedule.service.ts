@@ -14,6 +14,7 @@ import {
   MinuteRange,
   salonDate,
   salonZone,
+  salonClock,
   validatedShifts,
 } from './salon-time';
 
@@ -45,7 +46,7 @@ function asHours(range: MinuteRange) {
 export class ScheduleService {
   constructor(private readonly db: PrismaService) {}
   async availability(query: AvailabilityQuery) {
-    const now = Temporal.Now.instant();
+    const now = salonClock.now();
     const day = bookingDay(query.date, now);
     const { serviceId, staffId } = query;
     const slots = await this.db.$transaction(
@@ -131,7 +132,11 @@ export class ScheduleService {
     shifts: ReturnType<typeof validatedShifts>,
   ) {
     const held = await tx.appointment.findMany({
-      where: { staffId, status: { in: holding }, endAt: { gt: new Date() } },
+      where: {
+        staffId,
+        status: { in: holding },
+        endAt: { gt: new Date(salonClock.now().epochMilliseconds) },
+      },
       select: { ...heldFields, durationMinutes: true },
       orderBy: { startAt: 'asc' },
     });
@@ -200,7 +205,14 @@ export class ScheduleService {
         staffId,
         status: { in: holding },
         startAt: { lt: bounds.end },
-        endAt: { gt: new Date(Math.max(Date.now(), bounds.start.getTime())) },
+        endAt: {
+          gt: new Date(
+            Math.max(
+              salonClock.now().epochMilliseconds,
+              bounds.start.getTime(),
+            ),
+          ),
+        },
       },
       select: heldFields,
       orderBy: { startAt: 'asc' },

@@ -11,6 +11,9 @@ const { Temporal } = require('@js-temporal/polyfill');
 const { createApplication } = require('../dist/application');
 const { PrismaService } = require('../dist/prisma/prisma.service');
 const { hashPassword } = require('../dist/auth/password');
+const { salonClock } = require('../dist/schedule/salon-time');
+const realNow = salonClock.now;
+let instant, password;
 let app, db, base, customers, admin, service, staffId, day, passwordHash;
 const zone = 'Asia/Ho_Chi_Minh';
 async function http(method, path, body, cookie = '') {
@@ -98,7 +101,7 @@ beforeAll(async () => {
   await app.listen(0, '127.0.0.1');
   db = app.get(PrismaService);
   base = (await app.getUrl()) + '/api/v1';
-  const password = randomUUID();
+  password = randomUUID();
   passwordHash = await hashPassword(password);
   customers = [
     await user('CUSTOMER', password),
@@ -107,7 +110,9 @@ beforeAll(async () => {
   admin = await user('ADMIN', password);
 });
 beforeEach(async () => {
-  day = Temporal.Now.plainDateISO(zone).add({ days: 1 });
+  instant = Temporal.Instant.from('2032-06-01T08:00:00+07:00');
+  salonClock.now = () => instant;
+  day = instant.toZonedDateTimeISO(zone).toPlainDate().add({ days: 1 });
   service = await db.service.create({
     data: {
       name: 'Cắt thử',
@@ -119,6 +124,7 @@ beforeEach(async () => {
   staffId = await staff();
 });
 afterAll(async () => {
+  salonClock.now = realNow;
   if (app) await app.close();
 });
 test('migration từ trống đã cài extension và exclusion constraint', async () => {
@@ -261,7 +267,7 @@ test('kiểm tra lại quyền, dữ liệu do server quản lý, ca nghỉ, ng�
   for (const startAt of [
     day.toString() + 'T09:00:00',
     day.toString() + 'T09:00:00.001+07:00',
-    Temporal.Now.instant().subtract({ hours: 24 }).toString(),
+    instant.subtract({ hours: 24 }).toString(),
     day.add({ days: 29 }).toString() + 'T09:00:00+07:00',
   ])
     expect((await book('09:00', customers[0].cookie, { startAt })).status).toBe(
@@ -486,4 +492,206 @@ test('bỏ phân công, ngừng hoạt động và tăng thời lượng chỉ �
   expect(await db.appointment.findUniqueOrThrow({ where: { id } })).toEqual(
     saved,
   );
+});
+
+const changeStatus = (id, expectedStatus, status, cookie, extra = {}) =>
+  http(
+    'PATCH',
+    '/appointments/' + id + '/status',
+    { expectedStatus, status, ...extra },
+    cookie,
+  );
+const detail = (id, cookie) =>
+  http('GET', '/appointments/' + id, undefined, cookie);
+async function staffCookie(id) {
+  const { email } = await db.user.findUniqueOrThrow({ where: { id } });
+  const res = await http('POST', '/auth/login', { email, password });
+  expect(res.status).toBe(200);
+  return res.cookie;
+}
+test('phạm vi đọc, bộ lọc, phân trang và quyền xử lý lấy từ phiên', async () => {
+  const mine = (await book()).body;
+  const otherStaff = await staff();
+  const theirs = (
+    await book('09:30', customers[1].cookie, { staffId: otherStaff })
+  ).body;
+  const cookie = await staffCookie(staffId);
+  for (const viewer of [customers[0].cookie, cookie]) {
+    const missing = await detail(randomUUID(), viewer);
+    expect(missing.status).toBe(404);
+    expect((await detail(theirs.id, viewer)).body).toEqual(missing.body);
+    expect(
+      (
+        await changeStatus(theirs.id, 'PENDING', 'CANCELLED', viewer, {
+          reason: 'Bận',
+        })
+      ).body,
+    ).toEqual(missing.body);
+    expect((await detail(mine.id, viewer)).status).toBe(200);
+    expect(
+      (
+        await http(
+          'GET',
+          '/appointments?staffId=' + otherStaff,
+          undefined,
+          viewer,
+        )
+      ).body.total,
+    ).toBe(0);
+  }
+  const query =
+    '/appointments?date=' +
+    day.toString() +
+    '&status=PENDING&staffId=' +
+    staffId +
+    '&sort=startAt&order=desc&pageSize=1';
+  expect(
+    (await http('GET', query, undefined, admin.cookie)).body,
+  ).toMatchObject({ items: [{ id: mine.id }], page: 1, pageSize: 1, total: 1 });
+  expect(
+    (await http('GET', query + '&page=2', undefined, cookie)).body.items,
+  ).toEqual([]);
+  expect((await detail(theirs.id, admin.cookie)).status).toBe(200);
+  for (const q of [
+    'sort=actorId',
+    'pageSize=51',
+    'page=1001',
+    'date=2032-02-30',
+    'customerId=' + customers[0].id,
+  ])
+    expect(
+      (await http('GET', '/appointments?' + q, undefined, cookie)).status,
+    ).toBe(400);
+  expect(
+    (await changeStatus(mine.id, 'PENDING', 'CONFIRMED', customers[0].cookie))
+      .status,
+  ).toBe(403);
+  for (const extra of [
+    { actorId: admin.id },
+    { customerId: customers[1].id },
+    { history: [] },
+  ]) {
+    expect(
+      (await changeStatus(mine.id, 'PENDING', 'CONFIRMED', cookie, extra))
+        .status,
+    ).toBe(400);
+  }
+  expect(
+    (await changeStatus(mine.id, 'PENDING', 'CONFIRMED', cookie)).status,
+  ).toBe(200);
+  for (const viewer of [admin.cookie, cookie])
+    expect(
+      (
+        await changeStatus(mine.id, 'CONFIRMED', 'CANCELLED', viewer, {
+          reason: '  ',
+        })
+      ).status,
+    ).toBe(400);
+  const cancelled = await changeStatus(
+    mine.id,
+    'CONFIRMED',
+    'CANCELLED',
+    cookie,
+    { reason: '  Đổi ca  ' },
+  );
+  expect(cancelled.status).toBe(200);
+  expect(cancelled.body.events.at(-1)).toMatchObject({
+    actorId: staffId,
+    reason: 'Đổi ca',
+    previousStatus: 'CONFIRMED',
+    status: 'CANCELLED',
+  });
+});
+test.each([
+  [-1, 200],
+  [0, 200],
+  [1, 409],
+])('khách hủy cách hạn hai giờ %i ms', async (delta, expected) => {
+  const a = (await book()).body;
+  instant = Temporal.Instant.from(a.startAt)
+    .subtract({ hours: 2 })
+    .add({ milliseconds: delta });
+  const result = await changeStatus(
+    a.id,
+    'PENDING',
+    'CANCELLED',
+    customers[0].cookie,
+  );
+  expect(result.status).toBe(expected);
+  const slots = (await preview()).body.slots;
+  expect(
+    slots.some((s) => Date.parse(s.startAt) === Date.parse(a.startAt)),
+  ).toBe(expected === 200);
+  if (expected === 200)
+    expect(
+      (await changeStatus(a.id, 'PENDING', 'CONFIRMED', admin.cookie)).status,
+    ).toBe(409);
+});
+test.each([
+  ['COMPLETED', 'endAt'],
+  ['NO_SHOW', 'startAt'],
+])('%s chỉ từ CONFIRMED và đúng mốc thời gian', async (status, key) => {
+  const a = (await book()).body;
+  instant = Temporal.Instant.from(a[key]).subtract({ milliseconds: 1 });
+  expect(
+    (await changeStatus(a.id, 'PENDING', status, admin.cookie)).status,
+  ).toBe(409);
+  expect(
+    (await changeStatus(a.id, 'PENDING', 'CONFIRMED', admin.cookie)).status,
+  ).toBe(200);
+  expect(
+    (await changeStatus(a.id, 'CONFIRMED', status, admin.cookie)).status,
+  ).toBe(409);
+  instant = Temporal.Instant.from(a[key]);
+  expect(
+    (await changeStatus(a.id, 'CONFIRMED', status, admin.cookie)).status,
+  ).toBe(200);
+  expect(
+    (
+      await changeStatus(a.id, 'CONFIRMED', 'CANCELLED', admin.cookie, {
+        reason: 'Đổi ca',
+      })
+    ).status,
+  ).toBe(409);
+  expect(
+    (
+      await changeStatus(a.id, status, 'CANCELLED', admin.cookie, {
+        reason: 'Thử lại',
+      })
+    ).status,
+  ).toBe(409);
+  const saved = await detail(a.id, admin.cookie);
+  expect(saved.body.events.map((e) => e.status)).toEqual([
+    'PENDING',
+    'CONFIRMED',
+    status,
+  ]);
+});
+test('hai thao tác từ cùng trạng thái nguồn chỉ ghi một sự kiện mới', async () => {
+  const a = (await book()).body;
+  const results = await Promise.all([
+    changeStatus(a.id, 'PENDING', 'CONFIRMED', admin.cookie),
+    changeStatus(a.id, 'PENDING', 'CANCELLED', customers[0].cookie),
+  ]);
+  expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+  expect(results.find((r) => r.status === 409).body.code).toBe(
+    'APPOINTMENT_STATE_CONFLICT',
+  );
+  const saved = (await detail(a.id, admin.cookie)).body;
+  expect(saved.status).toBe(results.find((r) => r.status === 200).body.status);
+  expect(saved.events.map((e) => e.status)).toEqual(['PENDING', saved.status]);
+});
+test('lỗi ghi lịch sử chuyển trạng thái rollback cả thay đổi', async () => {
+  const a = (await book()).body;
+  await db.$executeRaw`ALTER TABLE "AppointmentEvent" ADD CONSTRAINT fixture_transition_failure CHECK ("previousStatus" IS NULL) NOT VALID`;
+  try {
+    expect(
+      (await changeStatus(a.id, 'PENDING', 'CONFIRMED', admin.cookie)).status,
+    ).toBe(500);
+    const saved = (await detail(a.id, admin.cookie)).body;
+    expect(saved.status).toBe('PENDING');
+    expect(saved.events.map((e) => e.status)).toEqual(['PENDING']);
+  } finally {
+    await db.$executeRaw`ALTER TABLE "AppointmentEvent" DROP CONSTRAINT fixture_transition_failure`;
+  }
 });
