@@ -32,3 +32,11 @@ NestJS kiểm tra danh tính, vai trò, phạm vi lịch, trạng thái nguồn 
 | Hai khách cùng đặt một nhân viên vào hai khoảng giao nhau | Tối đa một giao dịch thành công. Hai nhân viên khác nhau có thể nhận lịch cùng giờ nếu từng người đủ điều kiện.                   |
 | Lịch CONFIRMED bắt đầu 10:00, kết thúc 10:45              | Sớm nhất ghi NO_SHOW lúc 10:00 hoặc COMPLETED lúc 10:45.                                                                          |
 | Admin rút ngắn ca, thêm khoảng nghỉ hoặc ngày nghỉ        | Phát hiện các lịch giữ chỗ bị ảnh hưởng và báo cho admin. Chỉ áp dụng cấu hình bảo toàn lịch hiện hữu, không tự hủy hay dời lịch. |
+
+## Danh mục và bảo toàn lịch
+
+M3 lưu giá nguyên 0–10.000.000 VND và thời lượng nguyên 1–480 phút. Bước gợi ý giờ 15 phút không yêu cầu thời lượng là bội số của 15. Backend và PostgreSQL cùng kiểm tra các giới hạn này.
+
+Ngừng dịch vụ hoặc tài khoản nhân viên bằng active=false. Hồ sơ, dịch vụ và phân công vẫn tồn tại. Danh mục công khai chỉ trả nhân viên đang hoạt động được gán cho dịch vụ đang hoạt động. Có thể chuẩn bị phân công trong khi dịch vụ ngừng; phân công chỉ có hiệu lực công khai khi cả hai phía hoạt động.
+
+Khi triển khai đặt lịch ở M5, API phải đọc lại trạng thái hai phía và phân công lúc ghi, lấy giá và thời lượng từ dịch vụ trong database để lưu bản chụp trên lịch. Ngừng hoạt động, bỏ phân công hoặc thay đổi giá/thời lượng không tự hủy, dời hay tính lại lịch cũ. Lịch sẽ tham chiếu trực tiếp nhân viên và dịch vụ; bỏ một dòng phân công chỉ thay đổi khả năng nhận lịch mới.

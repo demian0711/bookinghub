@@ -30,9 +30,39 @@ async function seed() {
   );
   const db = new PrismaService();
   try {
-    // Một lần ghi cho cả bộ demo. Chạy lại giữ nguyên mật khẩu và quyền của tài khoản đã tồn tại.
-    const { count } = await db.user.createMany({ data, skipDuplicates: true });
-    console.log(`Đã tạo ${count} tài khoản demo.`);
+    await db.$transaction(async (tx) => {
+      await tx.user.createMany({ data, skipDuplicates: true });
+      const user = await tx.user.findUniqueOrThrow({
+        where: { email: 'staff@demo.bookinghub.test' },
+        select: { id: true, role: true },
+      });
+      if (user.role !== 'STAFF')
+        throw new Error('Email demo đã thuộc tài khoản khác vai trò.');
+      await tx.staffProfile.upsert({
+        where: { userId: user.id },
+        create: { userId: user.id },
+        update: {},
+      });
+      // Chỉ gán khi tạo dịch vụ mẫu lần đầu để seed lại không phục hồi phân công admin đã bỏ.
+      const id = 'bedc0c0a-d5a3-483a-adcb-772ffc926c88';
+      const inserted = await tx.service.createMany({
+        data: [
+          {
+            id,
+            name: 'Cắt và tạo kiểu',
+            description: 'Cắt tóc và tạo kiểu tại salon.',
+            priceVnd: 150000,
+            durationMinutes: 45,
+          },
+        ],
+        skipDuplicates: true,
+      });
+      if (inserted.count)
+        await tx.staffService.create({
+          data: { staffId: user.id, serviceId: id },
+        });
+    });
+    console.log('Đã chuẩn bị danh mục và tài khoản demo.');
   } finally {
     await db.$disconnect();
   }

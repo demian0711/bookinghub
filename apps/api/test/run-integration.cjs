@@ -72,6 +72,7 @@ async function run() {
         '--runInBand',
         '--runTestsByPath',
         'test/auth.test.cjs',
+        'test/catalog.test.cjs',
       ],
       options,
     );

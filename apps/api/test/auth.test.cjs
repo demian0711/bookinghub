@@ -234,7 +234,16 @@ test('seed yêu cầu opt-in, từ chối production và chạy lại giữ nguy
     'CUSTOMER',
     'STAFF',
   ]);
+  const staff = before.find((user) => user.role === 'STAFF');
+  const services = await get(
+    '/services/bedc0c0a-d5a3-483a-adcb-772ffc926c88/staff',
+  );
+  expect((await services.json()).items.map((person) => person.id)).toContain(
+    staff.id,
+  );
+  await db.staffService.deleteMany({ where: { staffId: staff.id } });
   run();
+  expect(await db.staffService.count({ where: { staffId: staff.id } })).toBe(0);
   expect(
     (await users()).every(
       (user, i) => user.passwordHash === before[i].passwordHash,
