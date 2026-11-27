@@ -1,4 +1,6 @@
-# Kế hoạch triển khai
+# Lộ trình phát triển BookingHub
+
+Phiên bản portfolio kết thúc ở phạm vi chạy local. Các mốc M0–M9 ghi lại quá trình xây dựng và kiểm tra từng phần, với kết quả local được lưu trong [báo cáo M9](test-report.md). Kiểm thử chế độ production qua HTTPS loopback vẫn thuộc môi trường local.
 
 M0 đã hoàn thành. M1 đã triển khai và chạy thử trên Windows với PostgreSQL 17.12 tạm. Hai ứng dụng khởi động qua script dev. Trang chủ, Swagger, health và ready qua proxy trả 200. Khi dừng database, ready trả 503 và health vẫn trả 200. Khi bật lại database, ready trở về 200. Cài đặt frozen, lint, format, typecheck, hai smoke test Jest và build đã đạt. Docker Compose CLI đã đọc được cấu hình với env mẫu. Đã kiểm chứng Docker Compose từ Git Bash trên Windows: db:up đưa PostgreSQL 17.12 về healthy tại 127.0.0.1:5432, hai smoke test đạt với env local, db:down dừng container và giữ volume. Workflow CI chờ lần chạy trên GitHub. M2 đã triển khai API xác thực, phân quyền, seed và migration; đã đạt 2 smoke test và 8 test tích hợp trên PostgreSQL riêng. Luồng qua proxy Next.js trả lần lượt 201, 200, 200, 204 và 401 cho đăng ký, đăng nhập, đọc hồ sơ, đăng xuất và dùng lại cookie. CI đã có bước migrate và test:integration, chờ chạy trên GitHub. M3 đã có migration, seed và API danh mục công khai/admin. Đã chạy 13 test tích hợp M2–M3 trên PostgreSQL riêng, gồm kiểm tra hai lần thay thế phân công đồng thời. M4 đã có cấu hình ca, khoảng nghỉ, ngày nghỉ và API giờ trống theo ngày salon. Đã chạy 20 test tích hợp M2–M4 với timezone tiến trình America/Los_Angeles. M5A đã có POST /appointments, snapshot, sự kiện trạng thái, constraint chống trùng và kiểm tra lịch bị ảnh hưởng khi đổi ca/nghỉ. M6 đã triển khai API xem lịch theo quyền và chuyển trạng thái có kiểm tra trạng thái nguồn. M7A đã triển khai layout, danh mục dịch vụ và tài khoản. M7B đã nối luồng đặt, xem và hủy lịch của khách với API thật, bổ sung E2E Playwright và artifact khi CI lỗi. Mỗi hàng có đầu ra đủ nhỏ để review riêng.
 
@@ -14,7 +16,7 @@ M0 đã hoàn thành. M1 đã triển khai và chạy thử trên Windows với 
 | M7 · Web cho khách              | M6               | Xem dịch vụ, chọn giờ, đăng nhập, đặt, xem và hủy lịch                                          | Playwright chạy luồng qua API thật, bao gồm phản hồi khi giờ vừa hết chỗ.                                                                                                                                                     |
 | M8 · Web vận hành               | M6, M7           | Màn hình staff/admin và dashboard cơ bản                                                        | Kiểm tra staff chỉ xử lý lịch được giao, admin quản lý toàn salon. Đối chiếu số liệu dashboard với lịch thực và kiểm tra lại luồng khách sau thay đổi cấu hình.                                                               |
 | M9 · Kiểm tra trước phát hành   | M8               | Sửa lỗi, bổ sung regression test, checklist và báo cáo                                          | Chạy lint, format, typecheck, unit, smoke, integration, E2E HTTPS và build. Ghi lại kết quả, phạm vi và giới hạn.                                                                                                             |
-| M10 · Phát hành                 | M9               | Chuẩn bị môi trường đích, bản sao lưu và kế hoạch quay lui                                      | Xác minh cấu hình, chạy CI và smoke trên môi trường đích trước khi công bố.                                                                                                                                                   |
+| M10 · Triển khai online (hoãn)  | M9               | Chuẩn bị môi trường đích, bản sao lưu và kế hoạch quay lui                                      | Xác minh cấu hình, chạy CI và smoke trên môi trường đích trước khi công bố.                                                                                                                                                   |
 
 Dashboard M8B dùng khoảng ngày bắt đầu hẹn tại salon, tối đa 90 ngày. Xem định nghĩa và cách đối chiếu trong [hướng dẫn nghiệm thu M8B](setup.md#m8b--nghiệm-thu-khu-vực-quản-trị).
 
@@ -40,4 +42,8 @@ Ba kịch bản Playwright đã đạt trên Chrome với Next.js, NestJS và Po
 
 ### M9 · Kết quả kiểm tra trước phát hành
 
-Các kiểm tra local đã đạt, gồm 3 unit, 2 smoke, 41 integration và 12 E2E HTTPS production. Xem [báo cáo kiểm tra](test-report.md) và [checklist phát hành](release-checklist.md) để biết phần xác minh còn lại của M10.
+Báo cáo M9 ghi nhận 3 unit, 2 smoke, 41 integration và 12 E2E chạy chế độ production qua HTTPS loopback. Xem [báo cáo kiểm tra](test-report.md) và [checklist phiên bản local](release-checklist.md). Đây là kết quả lịch sử của lượt kiểm tra M9.
+
+### M10 · Triển khai online (hoãn)
+
+Triển khai lên dịch vụ online nằm ngoài phạm vi bản portfolio hiện tại. Các bước xác minh trên dịch vụ đích vẫn để mở trong checklist.

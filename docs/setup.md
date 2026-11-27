@@ -28,7 +28,7 @@ cp -n apps/web/.env.example apps/web/.env.local
 
 API chạy trên máy Windows nên dùng host `127.0.0.1` và cổng do Compose publish. Với env mẫu, đích là `127.0.0.1:5432/bookinghub`. Nếu đã đổi cấu hình Compose, đối chiếu lại URL trong env của API. Biến đã export trong shell được ưu tiên hơn file. Nếu từng export URL database tạm để test, chạy `unset DATABASE_URL` trong Git Bash trước khi khởi động API hoặc Jest.
 
-Prisma Client được sinh khi chạy dev, typecheck, test hoặc build. M2 dùng migration cho User và Session.
+Prisma Client được sinh khi chạy dev, typecheck, test hoặc build. `pnpm db:migrate` áp dụng các migration đã lưu trong repo, từ tài khoản và session đến lịch hẹn và chỉ mục dashboard.
 
 ## Khởi động và kiểm tra
 
