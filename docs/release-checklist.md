@@ -1,6 +1,6 @@
-# Checklist phát hành BookingHub
+# Checklist phiên bản local của BookingHub
 
-Kết quả theo từng lệnh nằm trong [báo cáo M9](test-report.md).
+Các mục đã đánh dấu dựa trên lượt kiểm tra local ghi trong [báo cáo M9](test-report.md), gồm build production và E2E qua HTTPS loopback.
 
 ## M9 · Kiểm tra bản ứng viên
 
@@ -12,7 +12,9 @@ Kết quả theo từng lệnh nằm trong [báo cáo M9](test-report.md).
 - [x] Kiểm tra kết quả cuối của unit, smoke, integration, E2E HTTPS và build trong báo cáo.
 - [ ] Xem kết quả workflow GitHub Actions của bản ứng viên và kiểm tra artifact khi E2E thất bại.
 
-## M10 · Kiểm tra ở môi trường đích
+## M10 · Môi trường online (hoãn)
+
+Các mục dưới đây dành cho lần triển khai online sau này, ngoài phạm vi phiên bản local.
 
 - [ ] Xác minh origin HTTPS, đích proxy API và cách xử lý giới hạn đăng nhập qua proxy.
 - [ ] Xác minh PostgreSQL, quyền dùng migration và extension `btree_gist`. Sao lưu trước khi migrate và thử khôi phục trên database riêng.

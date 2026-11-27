@@ -1,5 +1,7 @@
 # Báo cáo kiểm tra M9
 
+Đây là kết quả lịch sử trên máy kiểm thử. Chế độ production và HTTPS trong báo cáo dùng Next.js/NestJS local với chứng chỉ loopback. Phiên bản portfolio hiện tại chạy local.
+
 **Môi trường** Windows và Git Bash, PostgreSQL 17.12 trên Docker, Google Chrome. Bộ tích hợp và trình duyệt tạo container tạm, áp dụng cả sáu migration và dọn container sau lượt chạy. Smoke health/readiness đọc PostgreSQL Compose cục bộ. Database người dùng không bị reset.
 
 ## Lỗi đã sửa
@@ -26,6 +28,8 @@
 Rà soát tệp theo dõi bằng `git ls-files`, tìm mẫu khóa riêng và token phổ biến bằng `git grep`, và đọc các `.env.example`. Các giá trị tìm thấy trong mẫu môi trường dùng cho local. Kiểm tra hiện tại bao phủ cây tệp được theo dõi và các mẫu đã tìm.
 
 ## Phạm vi còn cần xác minh
+
+Các mục liên quan đến dịch vụ đích được hoãn cùng M10.
 
 - Chạy workflow trên GitHub Actions, gồm tải artifact khi Playwright lỗi. Local đã tạo trace và HTML report trong lượt lỗi. CI dùng Chromium do Playwright cài đặt.
 - Kiểm tra proxy và chứng chỉ tin cậy, sao lưu/khôi phục và migration trên môi trường phát hành đã chọn. Smoke HTTPS hiện dùng chứng chỉ tự ký và PostgreSQL trắng riêng.
