@@ -152,7 +152,7 @@ async function run() {
     const password = randomUUID(),
       email = randomUUID() + '@example.test';
     await page.goto(origin + '/tai-khoan');
-    await page.waitForURL('**/dang-nhap?**');
+    await page.waitForURL('**/dang-nhap');
     await page.goto(
       origin + '/dang-ky?next=' + encodeURIComponent(destination),
     );
@@ -190,7 +190,7 @@ async function run() {
     try {
       const separate = await guest.newPage();
       await separate.goto(origin + '/tai-khoan');
-      await separate.waitForURL('**/dang-nhap?**');
+      await separate.waitForURL('**/dang-nhap');
       assert.equal(await separate.getByText(email).count(), 0);
     } finally {
       await guest.close();
@@ -198,15 +198,27 @@ async function run() {
     await page.getByRole('button', { name: 'Đăng xuất' }).click();
     await page.waitForURL(origin + '/');
     await page.goto(origin + '/tai-khoan');
-    await page.waitForURL('**/dang-nhap?**');
+    await page.waitForURL('**/dang-nhap');
     await page.goto(
       origin +
         '/dang-nhap?next=' +
         encodeURIComponent('https://example.invalid/'),
     );
     await login(password);
-    await page.waitForURL(origin + '/tai-khoan');
+    await page.waitForURL(origin + '/');
+    await page.goto(origin + '/tai-khoan');
     await page.getByText(email, { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Đăng xuất' }).click();
+    await page.waitForURL(origin + '/');
+    // Cùng thông tin đăng nhập, đổi vai trò trong database test để kiểm tra đích mặc định.
+    await api
+      .get(PrismaService)
+      .user.update({ where: { email }, data: { role: 'ADMIN' } });
+    await page.goto(origin + '/tai-khoan');
+    await page.waitForURL(origin + '/dang-nhap');
+    await login(password);
+    await page.waitForURL(origin + '/admin');
+    await page.getByRole('heading', { name: 'Tổng quan salon' }).waitFor();
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(origin);
     await page.getByRole('link', { name: /Tạo kiểu thử/ }).waitFor();

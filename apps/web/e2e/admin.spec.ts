@@ -99,6 +99,20 @@ test('dashboard khớp bản chụp, mốc ngày salon và danh sách liên kế
   ).toBe(400);
   await page.getByRole('link', { name: 'Đối chiếu toàn bộ lịch →' }).click();
   await expect(page.getByText('4 lịch phù hợp')).toBeVisible();
+  await page.locator('.appointment-list a').first().click();
+  await page.getByRole('link', { name: '← Quay lại danh sách lịch' }).click();
+  await expect(page.getByLabel('Từ ngày')).toHaveValue(day);
+  await expect(page.getByLabel('Đến ngày')).toHaveValue(day);
+  await expect(page.getByText('4 lịch phù hợp')).toBeVisible();
+  await page.goto('/admin?from=' + day + '&to=' + day);
+  await page
+    .getByRole('link', { name: 'Đã hoàn thành · 2', exact: true })
+    .click();
+  await expect(page.getByText('2 lịch phù hợp')).toBeVisible();
+  await page.goBack();
+  await expect(page.getByLabel('Từ ngày')).toHaveValue(day);
+  await page.reload();
+  await expect(page.locator('.metric-grid')).toContainText('300.000');
 });
 test('admin quản lý danh mục, ca nghỉ, xử lý 409 và khách vẫn đặt được', async ({
   page,

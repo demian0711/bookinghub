@@ -24,7 +24,7 @@ export function Account() {
         });
         if (request.signal.aborted || loggingOut.current) return;
         if (r.status === 401) {
-          window.location.replace('/dang-nhap?next=/tai-khoan');
+          window.location.replace('/dang-nhap');
           return;
         }
         if (!r.ok) throw Error();

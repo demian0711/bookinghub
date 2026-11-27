@@ -7,7 +7,7 @@ export function returnPath(raw: string | string[] | undefined) {
     raw.includes('\\') ||
     Array.from(raw).some((c) => c.charCodeAt(0) < 32)
   )
-    return '/tai-khoan';
+    return undefined;
   try {
     const base = 'https://bookinghub.invalid';
     const url = new URL(raw, base);
@@ -19,9 +19,9 @@ export function returnPath(raw: string | string[] | undefined) {
     )
       return url.pathname + url.search + url.hash;
   } catch {
-    return '/tai-khoan';
+    return undefined;
   }
-  return '/tai-khoan';
+  return undefined;
 }
 export interface User {
   id: string;
@@ -29,6 +29,20 @@ export interface User {
   email: string;
   role: 'CUSTOMER' | 'STAFF' | 'ADMIN';
 }
+export function afterLogin(next: string | undefined, role: User['role']) {
+  const target = returnPath(next);
+  const section = target?.split(/[/?#]/)[1]?.toLowerCase();
+  // Ưu tiên đích hợp lệ khi đăng nhập giữa luồng, còn đăng nhập trực tiếp mở trang theo vai trò.
+  if (
+    target &&
+    (section !== 'admin' || role === 'ADMIN') &&
+    (section !== 'staff' || role === 'STAFF') &&
+    (section !== 'lich-cua-toi' || role === 'CUSTOMER')
+  )
+    return target;
+  return { CUSTOMER: '/', STAFF: '/staff', ADMIN: '/admin' }[role];
+}
+
 export function submitAuth(
   action: 'register' | 'login' | 'logout',
   data?: object,

@@ -200,6 +200,15 @@ test('seed yêu cầu opt-in, từ chối production và chạy lại giữ nguy
       1,
     );
   }
+  const shortPassword = 'too-short';
+  const rejected = spawnSync(process.execPath, ['dist/seed.js'], {
+    env: { ...seedEnv, DEMO_STAFF_PASSWORD: shortPassword },
+    encoding: 'utf8',
+  });
+  expect(rejected.status).toBe(1);
+  expect(rejected.stderr).toMatch(/STAFF.*12/);
+  expect(rejected.stderr).not.toContain(shortPassword);
+
   const run = () =>
     execFileSync(process.execPath, ['dist/seed.js'], {
       env: seedEnv,
@@ -216,17 +225,49 @@ test('seed yêu cầu opt-in, từ chối production và chạy lại giữ nguy
     'ADMIN',
     'CUSTOMER',
     'STAFF',
+    'STAFF',
+    'STAFF',
   ]);
-  const staff = before.find((user) => user.role === 'STAFF');
+  const staff = before.find(
+    (user) => user.email === 'staff@demo.bookinghub.test',
+  );
   const services = await get(
     '/services/bedc0c0a-d5a3-483a-adcb-772ffc926c88/staff',
   );
   expect((await services.json()).items.map((person) => person.id)).toContain(
     staff.id,
   );
+  const seededServices = await db.service.findMany({
+    where: {
+      id: {
+        in: [
+          'bedc0c0a-d5a3-483a-adcb-772ffc926c88',
+          'a34f20c1-9b72-4e51-8d64-8b7b893771a1',
+          'a34f20c1-9b72-4e51-8d64-8b7b893771a2',
+          'a34f20c1-9b72-4e51-8d64-8b7b893771a3',
+          'a34f20c1-9b72-4e51-8d64-8b7b893771a4',
+        ],
+      },
+    },
+    include: { assignments: true },
+  });
+  expect(seededServices).toHaveLength(5);
+  expect(
+    seededServices.every((service) => service.assignments.length > 0),
+  ).toBe(true);
+  const originalService = seededServices.find(
+    (service) => service.id === 'bedc0c0a-d5a3-483a-adcb-772ffc926c88',
+  );
+  await db.service.update({
+    where: { id: originalService.id },
+    data: { priceVnd: 180000, durationMinutes: 60 },
+  });
   await db.staffService.deleteMany({ where: { staffId: staff.id } });
   run();
   expect(await db.staffService.count({ where: { staffId: staff.id } })).toBe(0);
+  expect(
+    await db.service.findUniqueOrThrow({ where: { id: originalService.id } }),
+  ).toMatchObject({ priceVnd: 180000, durationMinutes: 60 });
   expect(
     (await users()).every(
       (user, i) => user.passwordHash === before[i].passwordHash,

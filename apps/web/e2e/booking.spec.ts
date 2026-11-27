@@ -51,7 +51,7 @@ test('khôi phục sau đăng nhập, tranh cùng giờ, xem và hủy lịch th
   try {
     await rival.goto('/dang-nhap');
     await login(rival, 'lan');
-    await rival.waitForURL('**/tai-khoan');
+    await rival.waitForURL((url) => url.pathname === '/');
     await choose(rival, '09:00');
     expect((await confirm(rival)).status()).toBe(201);
     await expect(rival.getByText('Đặt lịch thành công')).toBeVisible();
@@ -120,7 +120,7 @@ test('đổi nhân viên hoặc ngày xóa giờ cũ và giờ mất trong lúc 
   try {
     await rival.goto('/dang-nhap');
     await login(rival, 'lan');
-    await rival.waitForURL('**/tai-khoan');
+    await rival.waitForURL((url) => url.pathname === '/');
     await choose(rival, '10:30');
     expect((await confirm(rival)).status()).toBe(201);
     await login(page, 'hoa');

@@ -72,15 +72,24 @@ Lệnh `db:down` giữ volume cho lần chạy tiếp theo.
 
 Sau khi `pnpm db:up`, chạy `pnpm db:migrate` để áp dụng migration bằng DATABASE_URL của API. Lệnh dùng migrate deploy và giữ dữ liệu hiện có. Mặc định WEB_ORIGIN là `http://localhost:3000` ở development/test. Nếu dùng host khác, đặt chính xác origin web (không có dấu / cuối) trong `apps/api/.env` rồi khởi động lại API. Production yêu cầu WEB_ORIGIN dùng HTTPS.
 
-Để tạo tài khoản demo, đặt ba mật khẩu riêng dài 12–128 ký tự trong Git Bash. Cú pháp dưới đây đọc ẩn và chỉ bật seed cho một lệnh. Tên đăng nhập là `customer@demo.bookinghub.test`, `staff@demo.bookinghub.test` và `admin@demo.bookinghub.test`. Seed chỉ tạo email chưa tồn tại trên PostgreSQL loopback ở development.
+Để tạo tài khoản demo, đặt ba mật khẩu riêng dài 12–128 ký tự trong Git Bash. Cú pháp dưới đây đọc ẩn và chỉ bật seed cho một lệnh. Tên đăng nhập là `customer@demo.bookinghub.test`, `staff@demo.bookinghub.test` và `admin@demo.bookinghub.test`. Seed chỉ tạo email chưa tồn tại trên PostgreSQL loopback ở development. Hai nhân viên mẫu mới dùng email `staff-mai@demo.bookinghub.test` và `staff-an@demo.bookinghub.test`. Khi tạo lần đầu, hai tài khoản dùng mật khẩu STAFF của lượt seed đó.
 
 ```bash
-for role in CUSTOMER STAFF ADMIN; do
-  read -rsp "Mật khẩu demo cho $role: " "DEMO_${role}_PASSWORD"; echo
-  export "DEMO_${role}_PASSWORD"
-done
-NODE_ENV=development ALLOW_DEMO_SEED=1 pnpm db:seed
-unset DEMO_CUSTOMER_PASSWORD DEMO_STAFF_PASSWORD DEMO_ADMIN_PASSWORD
+(
+  for role in CUSTOMER STAFF ADMIN; do
+    while true; do
+      read -rsp "Mật khẩu demo cho $role (12–128 ký tự): " password || exit 1
+      echo
+      if (( ${#password} >= 12 && ${#password} <= 128 )); then
+        export "DEMO_${role}_PASSWORD=$password"
+        break
+      fi
+      echo 'Mật khẩu phải dài 12–128 ký tự. Nhập lại.'
+    done
+  done
+  unset password
+  NODE_ENV=development ALLOW_DEMO_SEED=1 pnpm db:seed
+)
 ```
 
 ### Kiểm tra bằng HTTP client
@@ -351,3 +360,11 @@ Cả năm chỉ số dùng ngày của `Appointment.startAt` ở múi giờ `Asi
 ## M9 · Kiểm tra trước phát hành
 
 Chạy `pnpm test:unit` cho quy tắc ca và giờ salon. `pnpm test:e2e` khởi động NestJS ở production và Next.js từ bản build production qua HTTPS loopback với chứng chỉ tự ký sinh riêng cho lượt chạy. Playwright chấp nhận chứng chỉ thử nghiệm trong browser context. PostgreSQL riêng được tạo và dọn bằng Docker. Xem [checklist](release-checklist.md) và [báo cáo](test-report.md) để biết phạm vi đã xác minh.
+
+## Dữ liệu demo và thao tác thường dùng
+
+Chạy lại seed ở mục Xác thực M2 để bổ sung dịch vụ và nhân viên danh mục mẫu. Trên database mới, seed tạo 5 dịch vụ và 3 nhân viên có phân công. Trên database đã dùng, seed bổ sung mục còn thiếu và giữ nguyên giá, mật khẩu, phân công đã sửa và lịch hẹn hiện có.
+
+Đăng nhập từ trang đăng nhập trực tiếp đưa khách về trang chủ, nhân viên vào lịch làm việc và quản trị viên vào tổng quan. Một đường dẫn nội bộ hợp lệ và phù hợp với vai trò được ưu tiên, ví dụ khi khách đăng nhập giữa bước đặt lịch. Trang Tài khoản vẫn mở được từ thanh điều hướng.
+
+Ở Tổng quan và Lịch toàn salon, bấm **Áp dụng** để ghi khoảng ngày vào URL. Nút Back của trình duyệt, reload và liên kết **Quay lại danh sách lịch** trong chi tiết giữ bộ lọc đã áp dụng.

@@ -2,19 +2,26 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { Input } from '@/components/ui/input';
-import { notifySession, submitAuth } from '@/lib/account';
+import {
+  afterLogin,
+  notifySession,
+  submitAuth,
+  type User,
+} from '@/lib/account';
 export function AuthForm({
   register,
   next,
   created = false,
 }: {
   register: boolean;
-  next: string;
+  next?: string;
   created?: boolean;
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  const target = '?next=' + encodeURIComponent(next);
+  const query = new URLSearchParams();
+  if (next) query.set('next', next);
+  const target = query.size ? '?' + query : '';
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (busy) return;
@@ -49,10 +56,12 @@ export function AuthForm({
         return;
       }
       if (register) {
-        window.location.replace('/dang-nhap' + target + '&created=1');
+        query.set('created', '1');
+        window.location.replace('/dang-nhap?' + query);
       } else {
+        const user: User = await r.json();
         notifySession();
-        window.location.replace(next);
+        window.location.replace(afterLogin(next, user.role));
       }
     } catch {
       setError('Kết nối bị gián đoạn. Vui lòng thử lại.');

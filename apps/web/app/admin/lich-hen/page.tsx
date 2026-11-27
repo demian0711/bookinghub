@@ -9,10 +9,17 @@ export default async function Page({
     to = typeof q.to === 'string' ? q.to : undefined,
     status = typeof q.status === 'string' ? q.status : undefined,
     serviceId = typeof q.serviceId === 'string' ? q.serviceId : undefined;
+  const requestedPage = typeof q.page === 'string' ? Number(q.page) : 1;
+  const page =
+    Number.isInteger(requestedPage) &&
+    requestedPage >= 1 &&
+    requestedPage <= 1000
+      ? requestedPage
+      : 1;
   return (
     <Reports
-      key={JSON.stringify([from, to, status, serviceId])}
-      initial={{ from, to, status, serviceId }}
+      key={JSON.stringify([from, to, status, serviceId, page])}
+      initial={{ from, to, status, serviceId, page }}
     />
   );
 }

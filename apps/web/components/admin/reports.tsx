@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import type { FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { base, Loading } from './common';
 import { useResource } from '@/lib/use-resource';
 import {
@@ -37,16 +38,14 @@ export function Reports({
   initial,
 }: {
   dashboard?: boolean;
-  initial?: Partial<Filters>;
+  initial?: Partial<Filters> & { page?: number };
 }) {
-  const [filters, setFilters] = useState<Filters>(() => ({
-    from: initial?.from ?? salonDay(-6),
-    to: initial?.to ?? salonDay(),
-    status: initial?.status ?? '',
-    serviceId: initial?.serviceId ?? '',
-  }));
-  const [page, setPage] = useState(1);
-  const { from, to, status, serviceId } = filters;
+  const router = useRouter();
+  const from = initial?.from ?? salonDay(-6);
+  const to = initial?.to ?? salonDay();
+  const status = initial?.status ?? '';
+  const serviceId = initial?.serviceId ?? '';
+  const page = initial?.page ?? 1;
   const query = new URLSearchParams({ from, to });
   if (!dashboard) {
     query.set('page', String(page));
@@ -60,13 +59,24 @@ export function Reports({
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    setFilters({
+    const filters = new URLSearchParams({
       from: String(data.get('from')),
       to: String(data.get('to')),
-      status: String(data.get('status') ?? ''),
-      serviceId,
     });
-    setPage(1);
+    if (!dashboard) {
+      const selectedStatus = String(data.get('status') ?? '');
+      if (selectedStatus) filters.set('status', selectedStatus);
+      if (serviceId) filters.set('serviceId', serviceId);
+    }
+    router.push((dashboard ? '/admin' : '/admin/lich-hen') + '?' + filters);
+  }
+
+  function listFilters(pageNumber: number) {
+    const filters = new URLSearchParams({ from, to });
+    if (status) filters.set('status', status);
+    if (serviceId) filters.set('serviceId', serviceId);
+    if (pageNumber > 1) filters.set('page', String(pageNumber));
+    return filters;
   }
   function listLink(extra: Record<string, string> = {}) {
     return '/admin/lich-hen?' + new URLSearchParams({ from, to, ...extra });
@@ -174,7 +184,9 @@ export function Reports({
             <ul className="appointment-list">
               {result.data.items.map((a) => (
                 <li key={a.id}>
-                  <Link href={'/admin/lich-hen/' + a.id}>
+                  <Link
+                    href={'/admin/lich-hen/' + a.id + '?' + listFilters(page)}
+                  >
                     <strong>{a.serviceName}</strong>
                     <span>{statusNames[a.status]}</span>
                     <p>
@@ -196,7 +208,9 @@ export function Reports({
               <button
                 className="secondary"
                 disabled={page === 1}
-                onClick={() => setPage(page - 1)}
+                onClick={() =>
+                  router.push('/admin/lich-hen?' + listFilters(page - 1))
+                }
               >
                 Trang trước
               </button>
@@ -204,7 +218,9 @@ export function Reports({
               <button
                 className="secondary"
                 disabled={page * 10 >= result.data.total || page === 1000}
-                onClick={() => setPage(page + 1)}
+                onClick={() =>
+                  router.push('/admin/lich-hen?' + listFilters(page + 1))
+                }
               >
                 Trang sau
               </button>

@@ -7,14 +7,23 @@ const fixture = () =>
     past: string;
     ongoing: string;
   };
-async function login(page: Page, email: string, path = '/staff') {
-  await page.goto('/dang-nhap?next=' + encodeURIComponent(path));
+async function login(
+  page: Page,
+  email: string,
+  path = '/staff',
+  destination = path,
+) {
+  await page.goto(
+    path === '/staff'
+      ? '/dang-nhap'
+      : '/dang-nhap?next=' + encodeURIComponent(path),
+  );
   await page.getByLabel('Email', { exact: true }).fill(email + '@example.test');
   await page
     .getByLabel('Mật khẩu', { exact: true })
     .fill(process.env.E2E_PASSWORD!);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  await page.waitForURL((url) => url.pathname === path);
+  await page.waitForURL((url) => url.pathname === destination);
 }
 async function act(page: Page, label: string, reason?: string) {
   await page.getByRole('button', { name: label, exact: true }).click();
@@ -115,7 +124,8 @@ test('lịch ngoài phân công và khu vực nhân viên được bảo vệ c�
     page.getByText('Không tìm thấy lịch hẹn được giao.'),
   ).toBeVisible();
   expect((await change(page, f.foreign, 'CONFIRMED')).status()).toBe(404);
-  await login(page, 'mai', '/staff/' + f.foreign);
+  await login(page, 'mai', '/staff/' + f.foreign, '/');
+  await page.goto('/staff/' + f.foreign);
   await expect(
     page.getByText(/Khu vực này chỉ dành cho nhân viên/),
   ).toBeVisible();
